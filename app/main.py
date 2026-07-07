@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
             await cleanup_task
 
 
-app = FastAPI(title="Split Expenses", lifespan=lifespan)
+app = FastAPI(title="Поровну", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
