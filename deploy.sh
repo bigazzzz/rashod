@@ -2,4 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 git pull
-docker compose up --build -d
+docker compose pull
+docker compose up -d
+docker image prune -f
