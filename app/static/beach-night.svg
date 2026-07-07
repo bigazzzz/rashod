@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="sceneTitle">
+  <title id="sceneTitle">Ночной пляж: яркая луна, костёр, гротескные силуэты друзей с гитарой у палаток</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#030611"/>
+      <stop offset="40%" stop-color="#080f26"/>
+      <stop offset="72%" stop-color="#161235"/>
+      <stop offset="90%" stop-color="#33163a"/>
+      <stop offset="100%" stop-color="#4a1f2e"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c1440"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbe8" stop-opacity="1"/>
+      <stop offset="35%" stop-color="#ffe9a8" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffe9a8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fireGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd76b" stop-opacity="1"/>
+      <stop offset="30%" stop-color="#ff9a3c" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ff5b2e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fireGlowGround" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff9a3c" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ff9a3c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="800" height="300" fill="url(#sky)"/>
+
+  <g fill="#f4ecff" opacity="0.85">
+    <circle cx="70" cy="30" r="1.5"/>
+    <circle cx="130" cy="55" r="1"/>
+    <circle cx="190" cy="22" r="1.3"/>
+    <circle cx="255" cy="60" r="1"/>
+    <circle cx="35" cy="80" r="1"/>
+    <circle cx="300" cy="35" r="1.4"/>
+    <circle cx="105" cy="100" r="0.9"/>
+    <circle cx="230" cy="90" r="1"/>
+    <circle cx="600" cy="110" r="1"/>
+    <circle cx="720" cy="40" r="1.3"/>
+    <circle cx="760" cy="90" r="1"/>
+    <circle cx="670" cy="130" r="0.9"/>
+  </g>
+
+  <!-- луна: главный яркий акцент -->
+  <circle cx="660" cy="66" r="95" fill="url(#moonGlow)"/>
+  <circle cx="660" cy="66" r="34" fill="#fffdf3"/>
+  <circle cx="674" cy="56" r="29" fill="#0a1024"/>
+
+  <rect x="0" y="178" width="800" height="45" fill="url(#sea)"/>
+  <path d="M0,178 Q40,172 80,178 T160,178 T240,178 T320,178 T400,178 T480,178 T560,178 T640,178 T720,178 T800,178"
+        fill="none" stroke="#fffdf3" stroke-opacity="0.3" stroke-width="2"/>
+  <path d="M580,178 L660,178 L760,222 L520,222 Z" fill="#fffdf3" opacity="0.08"/>
+
+  <path d="M0,213 Q120,192 260,216 T520,214 Q660,200 800,218 V300 H0 Z" fill="#1c1626"/>
+  <path d="M0,232 Q140,214 300,233 T600,231 Q700,222 800,236 V300 H0 Z" fill="#241a20"/>
+
+  <!-- тёплое зарево костра на песке -->
+  <ellipse cx="430" cy="268" rx="180" ry="42" fill="url(#fireGlowGround)"/>
+
+  <!-- гротескные палатки: кривобокие, накренившиеся, с огромным флагом-заплаткой -->
+  <g transform="translate(60,148)">
+    <polygon points="-14,96 26,4 128,96" fill="#120a2e"/>
+    <polygon points="8,96 40,44 74,96" fill="#05030f"/>
+    <line x1="26" y1="4" x2="52" y2="96" stroke="#4a3878" stroke-width="2.5"/>
+    <polygon points="26,4 26,-22 52,-6" fill="#1e1440"/>
+  </g>
+  <g transform="translate(618,156)">
+    <polygon points="-10,82 78,-2 112,82" fill="#3a1030"/>
+    <polygon points="54,82 76,38 98,82" fill="#1c0818"/>
+    <line x1="78" y1="-2" x2="52" y2="82" stroke="#8a3358" stroke-width="2.5"/>
+    <polygon points="78,-2 78,-24 100,-10" fill="#5c1a40"/>
+  </g>
+
+  <!-- костёр: второй яркий акцент -->
+  <circle cx="430" cy="252" r="46" fill="url(#fireGlow)"/>
+  <g transform="translate(400,206)">
+    <path d="M28,58 C18,46 20,34 26,20 C30,10 26,4 30,-4 C34,8 44,14 42,28 C48,20 50,12 46,4 C58,18 56,36 44,46 C50,42 54,36 52,28 C58,42 52,56 38,58 Z"
+          fill="#ff7a29"/>
+    <path d="M28,58 C22,48 24,38 28,28 C30,20 28,14 30,6 C34,16 40,22 38,32 C42,26 43,20 41,14 C48,26 44,42 34,50 C38,46 40,42 39,36 C42,46 38,54 28,58 Z"
+          fill="#ffd35c"/>
+    <path d="M25,58 C22,52 23,46 26,40 C29,46 30,50 28,58 Z" fill="#fff3c4"/>
+  </g>
+  <g stroke="#1c130a" stroke-width="5" stroke-linecap="round">
+    <line x1="394" y1="264" x2="424" y2="252"/>
+    <line x1="468" y1="266" x2="436" y2="253"/>
+    <line x1="430" y1="270" x2="430" y2="256"/>
+  </g>
+
+  <!-- гротескные силуэты друзей: непропорционально большие головы, толстые конечности, разнесены вокруг костра -->
+  <g fill="#0a0612" stroke="#0a0612" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- танцор: руки вверх, широкая стойка -->
+    <g transform="translate(298,230)">
+      <path d="M-18,42 Q-34,8 -24,-14" stroke-width="8" fill="none"/>
+      <path d="M16,42 Q34,6 26,-16" stroke-width="8" fill="none"/>
+      <path d="M-11,44 Q-18,62 -11,76" stroke-width="9" fill="none"/>
+      <path d="M9,44 Q18,62 13,76" stroke-width="9" fill="none"/>
+      <ellipse cx="0" cy="28" rx="16" ry="21"/>
+      <circle cx="0" cy="-6" r="17"/>
+    </g>
+
+    <!-- тост бутылкой -->
+    <g transform="translate(362,250)">
+      <path d="M-15,28 Q-24,10 -15,-12" stroke-width="8" fill="none"/>
+      <path d="M13,26 Q11,4 -3,-20" stroke-width="8" fill="none"/>
+      <ellipse cx="0" cy="17" rx="15" ry="19"/>
+      <circle cx="-2" cy="-10" r="16"/>
+      <rect x="-7" y="-36" width="8" height="22" rx="2.5" transform="rotate(-18 -7 -36)" stroke="none" fill="#0a0612"/>
+    </g>
+
+    <!-- сидящий, обнимающий колени -->
+    <g transform="translate(497,260)">
+      <ellipse cx="0" cy="11" rx="19" ry="15"/>
+      <circle cx="0" cy="-16" r="15"/>
+      <path d="M-15,4 Q0,22 15,4" stroke-width="8" fill="none"/>
+    </g>
+
+    <!-- гитарист: гротескно огромная гитара -->
+    <g transform="translate(566,228)">
+      <path d="M16,34 Q34,28 39,10" stroke-width="8" fill="none"/>
+      <path d="M-18,10 Q-4,28 12,32" stroke-width="8" fill="none"/>
+      <path d="M-9,46 Q-16,64 -9,78" stroke-width="9" fill="none"/>
+      <path d="M9,46 Q16,64 23,76" stroke-width="9" fill="none"/>
+      <ellipse cx="0" cy="28" rx="16" ry="21"/>
+      <circle cx="-2" cy="-8" r="16"/>
+      <g transform="translate(6,22) rotate(30)">
+        <ellipse cx="0" cy="12" rx="20" ry="27" fill="#c9812f" stroke="#7a4a1a" stroke-width="1.5"/>
+        <circle cx="0" cy="12" r="8" fill="#3a220f" stroke="none"/>
+        <rect x="-4" y="-38" width="8" height="34" fill="#c9812f" stroke="#7a4a1a" stroke-width="1.5"/>
+        <circle cx="0" cy="-40" r="6" fill="#c9812f" stroke="#7a4a1a" stroke-width="1.5"/>
+      </g>
+    </g>
+  </g>
+</svg>

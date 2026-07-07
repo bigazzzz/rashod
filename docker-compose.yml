@@ -1,0 +1,36 @@
+services:
+  web:
+    build: .
+    expose:
+      - "8000"
+    environment:
+      DATABASE_URL: sqlite:////data/expenses.db
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      TRUST_PROXY_HEADERS: "1" # Caddy is the only thing that can reach this container
+      EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-365}
+    volumes:
+      - db_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

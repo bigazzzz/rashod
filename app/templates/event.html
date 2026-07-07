@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block hero_class %} hero--compact{% endblock %}
+{% block content %}
+  <h1>{{ event.name }}</h1>
+  <p class="hint">Отправьте эту ссылку друзьям, чтобы они могли добавить свои траты.</p>
+
+  <div class="share-row">
+    <input type="text" id="share-link" value="{{ share_url }}" readonly onclick="this.select()">
+    <button type="button" id="share-btn">Поделиться</button>
+  </div>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="/e/{{ event.slug }}/expenses">
+    <label for="payer_name">Ваше имя</label>
+    <input type="text" id="payer_name" name="payer_name" placeholder="Имя" autocomplete="name" required>
+
+    <label for="amount">Сумма</label>
+    <input type="text" id="amount" name="amount" placeholder="1000.00" inputmode="decimal" required>
+
+    <label for="description">На что потрачено (необязательно)</label>
+    <input type="text" id="description" name="description" placeholder="Продукты, бензин...">
+
+    <button type="submit">Добавить трату</button>
+  </form>
+
+  <h2>Внесённые траты</h2>
+  {% if expenses %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr>
+              <td>{{ expense.payer_name }}</td>
+              <td>{{ expense.description or "—" }}</td>
+              <td>{{ "%.2f"|format(expense.amount) }} ₽</td>
+              <td>
+                <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
+                  <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
+  {% else %}
+    <p>Пока никто ничего не добавил.</p>
+  {% endif %}
+
+  <p><a href="/e/{{ event.slug }}/results">Посмотреть результаты →</a></p>
+
+  <script>
+    (function () {
+      const shareBtn = document.getElementById("share-btn");
+      const shareLink = document.getElementById("share-link");
+
+      shareBtn.addEventListener("click", async function () {
+        const url = shareLink.value;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({ url: url });
+            return;
+          } catch (err) {
+            if (err && err.name === "AbortError") {
+              return; // пользователь сам закрыл окно шеринга
+            }
+            // navigator.share есть, но не сработал (например, запрещено
+            // политикой браузера) — пробуем скопировать в буфер ниже
+          }
+        }
+
+        let copied = false;
+        try {
+          if (navigator.clipboard) {
+            await navigator.clipboard.writeText(url);
+            copied = true;
+          }
+        } catch (err) {
+          copied = false;
+        }
+
+        if (!copied) {
+          try {
+            shareLink.select();
+            copied = document.execCommand("copy");
+          } catch (err) {
+            copied = false;
+          }
+        }
+
+        const original = shareBtn.textContent;
+        shareBtn.textContent = copied ? "Скопировано!" : "Скопируйте вручную";
+        setTimeout(function () {
+          shareBtn.textContent = original;
+        }, 1500);
+      });
+    })();
+  </script>
+{% endblock %}

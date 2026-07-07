@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Результаты — {{ event.name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block hero_class %} hero--compact{% endblock %}
+{% block content %}
+  <h1>Результаты: {{ event.name }}</h1>
+
+  <h2>Кто сколько потратил</h2>
+  {% if totals %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Имя</th><th>Потрачено</th></tr>
+        </thead>
+        <tbody>
+          {% for person, amount in totals.items() %}
+            <tr><td>{{ person }}</td><td>{{ "%.2f"|format(amount) }} ₽</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>Трат пока нет.</p>
+  {% endif %}
+
+  <h2>Кто кому должен</h2>
+  {% if transfers %}
+    <ul>
+      {% for t in transfers %}
+        <li>{{ t.from_person }} → {{ t.to_person }}: {{ "%.2f"|format(t.amount) }} ₽</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Все квиты, переводов не требуется.</p>
+  {% endif %}
+
+  <p><a href="/e/{{ event.slug }}">← Назад к мероприятию</a></p>
+{% endblock %}
