@@ -35,7 +35,7 @@ class ExpenseCreate(BaseModel):
 
     @field_validator("amount")
     @classmethod
-    def amount_positive(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError("Сумма должна быть больше нуля")
+    def amount_non_negative(cls, v: Decimal) -> Decimal:
+        if v < 0:
+            raise ValueError("Сумма не может быть отрицательной")
         return v

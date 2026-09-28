@@ -24,11 +24,11 @@ def test_full_flow_totals_and_settlement(client):
 
     r2 = client.post(
         f"/e/{slug}/expenses",
-        data={"payer_name": "Bob", "description": "Такси", "amount": "0"},
+        data={"payer_name": "Bob", "description": "", "amount": "0"},
         follow_redirects=False,
     )
-    # amount must be > 0, expect validation error re-rendering the event page
-    assert r2.status_code == 400
+    # zero amount registers a participant who paid nothing
+    assert r2.status_code == 303
 
     r3 = client.post(
         f"/e/{slug}/expenses",
@@ -37,12 +37,29 @@ def test_full_flow_totals_and_settlement(client):
     )
     assert r3.status_code == 303
 
+    event_page = client.get(f"/e/{slug}")
+    assert event_page.status_code == 200
+    assert "участник" in event_page.text
+    assert "0 — добавить участника без трат" in event_page.text
+
     results = client.get(f"/e/{slug}/results")
     assert results.status_code == 200
     assert "Alice" in results.text
+    assert "Bob" in results.text
     assert "Carol" in results.text
-    # Bob never successfully added an expense, so he shouldn't appear in totals
-    assert "Bob" not in results.text
+    # Bob paid 0, so he owes his share
+    assert "Bob → Alice" in results.text
+
+
+def test_negative_amount_rejected(client):
+    slug = create_event(client, name="Минус")
+    response = client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Alice", "description": "Ошибка", "amount": "-1"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+    assert "отрицательной" in response.text
 
 
 def test_unknown_slug_returns_404(client):

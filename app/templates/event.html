@@ -21,6 +21,7 @@
 
     <label for="amount">Сумма</label>
     <input type="text" id="amount" name="amount" placeholder="1000.00" inputmode="decimal" required>
+    <p class="hint">0 — добавить участника без трат (он всё равно войдёт в дележ).</p>
 
     <label for="description">На что потрачено (необязательно)</label>
     <input type="text" id="description" name="description" placeholder="Продукты, бензин...">
@@ -40,7 +41,7 @@
             <tr>
               <td>{{ expense.payer_name }}</td>
               <td>{{ expense.description or "—" }}</td>
-              <td>{{ "%.2f"|format(expense.amount) }} ₽</td>
+              <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
               <td>
                 <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
                   <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
