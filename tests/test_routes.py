@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Дата удаления события" in response.text
+    assert "Превью ссылки события" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -69,6 +69,17 @@ def test_event_page_shows_frequent_description_chips(client):
     assert 'class="chip chip--frequent" data-chip-value="сувениры"' in response.text
     assert 'data-chip-value="разовое"' not in response.text
     assert response.text.count('data-chip-value="продукты"') == 1
+
+
+def test_event_page_has_open_graph_preview(client):
+    slug = create_event(client, name="Поход в горы")
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert 'property="og:title" content="Поход в горы — Поровну"' in response.text
+    assert "Добавьте свои траты в «Поход в горы»" in response.text
+    assert f'property="og:url" content="http://testserver/e/{slug}"' in response.text
+    assert 'property="og:image" content="http://testserver/static/beach-night.svg"' in response.text
+    assert 'name="twitter:card" content="summary_large_image"' in response.text
 
 
 def test_event_page_shows_expiry_date(client):

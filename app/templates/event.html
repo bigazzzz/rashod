@@ -1,6 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ event.name }}{% endblock %}
+{% block title %}{{ event.name }} — Поровну{% endblock %}
+{% block meta_description %}Добавьте свои траты в «{{ event.name }}» на Поровну — и узнайте, кто кому должен.{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
+{% block og_title %}{{ event.name }} — Поровну{% endblock %}
+{% block og_description %}Добавьте свои траты в «{{ event.name }}» — сервис сам посчитает, кто кому должен.{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ share_url }}">{% endblock %}
+{% block og_image %}<meta property="og:image" content="{{ og_image_url }}">{% endblock %}
+{% block twitter_card %}summary_large_image{% endblock %}
 {% block hero_class %} hero--compact{% endblock %}
 {% block content %}
   <h1>{{ event.name }}</h1>

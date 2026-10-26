@@ -124,6 +124,7 @@ def render_event_page(
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
+        "og_image_url": f"{base_url}/static/beach-night.svg",
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
