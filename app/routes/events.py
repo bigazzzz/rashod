@@ -13,7 +13,7 @@ from app.cleanup import RETENTION_DAYS
 from app.db import get_db
 from app.debug_og import agent_log, recent_hits
 from app.metrics import events_created_total
-from app.og_image import render_event_og_png
+from app.og_image import render_event_og_jpeg
 from app.rate_limit import limiter
 from app.schemas import EventCreate
 from app.settlement import compute_balances, compute_totals, settle_debts
@@ -127,7 +127,7 @@ def render_event_page(
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
-        "og_image_url": f"{base_url}/og/{event.slug}.png",
+        "og_image_url": f"{base_url}/og/{event.slug}.jpg",
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
@@ -212,7 +212,7 @@ def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
 
 def _og_image_response(event, *, request: Request | None = None, route: str = "") -> Response:
     t0 = time.perf_counter()
-    png = render_event_og_png(event.name)
+    png = render_event_og_jpeg(event.name)
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     # #region agent log
     ua = request.headers.get("user-agent", "") if request is not None else ""
@@ -243,7 +243,7 @@ def _og_image_response(event, *, request: Request | None = None, route: str = ""
     # #endregion
     return Response(
         content=png,
-        media_type="image/png",
+        media_type="image/jpeg",
         headers={
             "Cache-Control": "public, max-age=3600",
             "Content-Length": str(len(png)),
@@ -251,9 +251,15 @@ def _og_image_response(event, *, request: Request | None = None, route: str = ""
     )
 
 
-@router.api_route("/og/{slug}.png", methods=["GET", "HEAD"])
+@router.api_route("/og/{slug}.jpg", methods=["GET", "HEAD"])
 def event_og_image(request: Request, slug: str, db: Session = Depends(get_db)):
     # Outside /e/ so social crawlers are not blocked if robots ever restricts events again.
+    event = _get_event_or_404(db, slug)
+    return _og_image_response(event, request=request, route="/og/{slug}.jpg")
+
+
+@router.api_route("/og/{slug}.png", methods=["GET", "HEAD"], include_in_schema=False)
+def event_og_image_png_legacy(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
     return _og_image_response(event, request=request, route="/og/{slug}.png")
 

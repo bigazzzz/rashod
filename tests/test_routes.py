@@ -78,26 +78,28 @@ def test_event_page_has_open_graph_preview(client):
     assert 'property="og:title" content="Поход в горы · Поровну"' in response.text
     assert "Открой ссылку, добавь траты в «Поход в горы»" in response.text
     assert f'property="og:url" content="http://testserver/e/{slug}"' in response.text
-    assert f'property="og:image" content="http://testserver/og/{slug}.png"' in response.text
+    assert f'property="og:image" content="http://testserver/og/{slug}.jpg"' in response.text
+    assert 'property="og:image:type" content="image/jpeg"' in response.text
     assert 'property="og:image:width" content="1200"' in response.text
     assert 'name="twitter:card" content="summary_large_image"' in response.text
 
 
-def test_event_og_image_is_png(client):
+def test_event_og_image_is_compact_jpeg(client):
     slug = create_event(client, name="Ужин у костра")
-    response = client.get(f"/og/{slug}.png")
+    response = client.get(f"/og/{slug}.jpg")
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("image/png")
-    assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
-    assert len(response.content) > 10_000
+    assert response.headers["content-type"].startswith("image/jpeg")
+    assert response.content[:3] == b"\xff\xd8\xff"
+    assert 10_000 < len(response.content) < 300_000
 
-    head = client.head(f"/og/{slug}.png")
+    head = client.head(f"/og/{slug}.jpg")
     assert head.status_code == 200
-    assert head.headers["content-type"].startswith("image/png")
+    assert head.headers["content-type"].startswith("image/jpeg")
 
-    legacy = client.get(f"/e/{slug}/og.png")
-    assert legacy.status_code == 200
-    assert legacy.content[:8] == b"\x89PNG\r\n\x1a\n"
+    for legacy_url in (f"/og/{slug}.png", f"/e/{slug}/og.png"):
+        legacy = client.get(legacy_url)
+        assert legacy.status_code == 200
+        assert legacy.content[:3] == b"\xff\xd8\xff"
 
 
 def test_robots_allows_event_pages(client):

@@ -60,7 +60,14 @@ def _draw_text_with_shadow(
     draw.text((x, y), text, font=font, fill=fill)
 
 
-def render_event_og_png(event_name: str) -> bytes:
+@lru_cache(maxsize=256)
+def render_event_og_jpeg(event_name: str) -> bytes:
+    buf = BytesIO()
+    _compose(event_name).save(buf, format="JPEG", quality=85, optimize=True, progressive=True)
+    return buf.getvalue()
+
+
+def _compose(event_name: str) -> Image.Image:
     base = _load_background().copy().convert("RGBA")
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -102,8 +109,4 @@ def render_event_og_png(event_name: str) -> bytes:
     )
 
     composed = Image.alpha_composite(base, overlay).convert("RGB")
-    composed = composed.filter(ImageFilter.UnsharpMask(radius=1.1, percent=105, threshold=2))
-
-    buf = BytesIO()
-    composed.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    return composed.filter(ImageFilter.UnsharpMask(radius=1.1, percent=105, threshold=2))
