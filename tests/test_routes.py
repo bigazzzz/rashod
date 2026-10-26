@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Убраны плашки сумм" in response.text
+    assert "Сумма 2000 и частые описания" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -28,10 +28,9 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert response.status_code == 200
     assert 'data-chip-target="amount"' in response.text
     assert 'data-chip-value="000"' in response.text
-    assert 'data-chip-value="300"' in response.text
+    assert 'data-chip-value="2000"' in response.text
+    assert 'data-chip-value="2500"' not in response.text
     assert 'data-chip-value="5000"' in response.text
-    assert 'data-chip-value="3500"' not in response.text
-    assert 'data-chip-value="4500"' not in response.text
     assert 'data-chip-mode="append"' in response.text
     # 000 is the first amount chip
     amount_pos = response.text.find('data-chip-target="amount"')
@@ -39,11 +38,37 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert response.text.startswith('data-chip-value="000"', first_chip)
     assert 'data-chip-target="description"' in response.text
     assert 'data-chip-value="продукты"' in response.text
-    assert 'data-chip-value="гид"' in response.text
-    assert 'data-chip-value="экскурсия"' in response.text
     assert 'data-chip-value="концерт"' in response.text
     assert 'data-chip-value="прочее"' in response.text
     assert 'data-chip-target="payer_name"' not in response.text
+
+
+def test_event_page_shows_frequent_description_chips(client):
+    slug = create_event(client, name="Частые")
+    for amount in ("10", "20"):
+        client.post(
+            f"/e/{slug}/expenses",
+            data={"payer_name": "Алиса", "description": "сувениры", "amount": amount},
+            follow_redirects=False,
+        )
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Боб", "description": "разовое", "amount": "5"},
+        follow_redirects=False,
+    )
+    # default category repeated should not be duplicated as frequent chip
+    for amount in ("1", "2"):
+        client.post(
+            f"/e/{slug}/expenses",
+            data={"payer_name": "Карл", "description": "продукты", "amount": amount},
+            follow_redirects=False,
+        )
+
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert 'class="chip chip--frequent" data-chip-value="сувениры"' in response.text
+    assert 'data-chip-value="разовое"' not in response.text
+    assert response.text.count('data-chip-value="продукты"') == 1
 
 
 def test_event_page_shows_known_name_chips(client):

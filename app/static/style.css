@@ -298,6 +298,11 @@ ul li {
   box-shadow: 0 0 0 3px rgba(240, 184, 78, 0.25);
 }
 
+.chip--frequent {
+  border-style: dashed;
+  border-color: rgba(248, 236, 217, 0.35);
+}
+
 .changelog {
   margin-top: 2rem;
   padding-top: 1.25rem;

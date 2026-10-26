@@ -46,6 +46,9 @@
       {% for chip in description_chips %}
         <button type="button" class="chip" data-chip-value="{{ chip }}">{{ chip }}</button>
       {% endfor %}
+      {% for chip in frequent_description_chips %}
+        <button type="button" class="chip chip--frequent" data-chip-value="{{ chip }}">{{ chip }}</button>
+      {% endfor %}
     </div>
 
     <button type="submit">Добавить трату</button>

@@ -62,11 +62,13 @@ AMOUNT_CHIPS = (
     "500",
     "1000",
     "1500",
-    "2500",
+    "2000",
     "3000",
     "4000",
     "5000",
 )
+
+_DEFAULT_DESCRIPTION_SET = frozenset(DESCRIPTION_CHIPS)
 
 
 def _unique_payer_names(expenses) -> list[str]:
@@ -78,6 +80,24 @@ def _unique_payer_names(expenses) -> list[str]:
             seen.add(name)
             names.append(name)
     return names
+
+
+def _frequent_descriptions(expenses, *, min_count: int = 2) -> list[str]:
+    """Descriptions used at least min_count times in this event, excluding defaults."""
+    counts: dict[str, int] = {}
+    order: list[str] = []
+    for expense in expenses:
+        text = (expense.description or "").strip()
+        if not text:
+            continue
+        if text not in counts:
+            counts[text] = 0
+            order.append(text)
+        counts[text] += 1
+
+    repeated = [text for text in order if counts[text] >= min_count]
+    repeated.sort(key=lambda text: (-counts[text], order.index(text)))
+    return [text for text in repeated if text not in _DEFAULT_DESCRIPTION_SET]
 
 
 def render_event_page(
@@ -98,6 +118,7 @@ def render_event_page(
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
+        "frequent_description_chips": _frequent_descriptions(expenses),
     }
     if error:
         context["error"] = error
