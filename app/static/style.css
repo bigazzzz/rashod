@@ -62,10 +62,13 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Same framing as social OG preview (1200×630), not a cropped strip. */
 .hero--compact {
-  height: 100px;
+  aspect-ratio: 1200 / 630;
+  height: auto;
+  max-height: none;
   object-fit: cover;
-  object-position: center bottom;
+  object-position: center center;
 }
 
 .table-scroll {

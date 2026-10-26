@@ -173,22 +173,48 @@ def test_event_page_has_expense_added_toast(client):
     assert "added=1" in page.text
 
 
-def test_event_page_hero_uses_og_image(client):
+def test_event_page_hero_matches_og_image_meta(client):
+    """Hero on the event page must be the same asset as social OG preview."""
+    import re
+    from io import BytesIO
+
+    from PIL import Image
+
+    from app.og_image import save_generated_background
+
     slug = create_event(client, name="Hero OG")
     page = client.get(f"/e/{slug}")
-    assert f'src="/og/{slug}.jpg"' in page.text
     assert "/static/beach-night.svg" not in page.text
+    assert f'src="/og/{slug}.jpg"' in page.text
+    og = re.search(r'property="og:image" content="([^"]+)"', page.text)
+    assert og is not None
+    assert og.group(1).endswith(f"/og/{slug}.jpg")
+
+    raw = BytesIO()
+    Image.new("RGB", (1200, 630), (0, 200, 80)).save(raw, format="JPEG")
+    save_generated_background(slug, raw.getvalue())
+    page2 = client.get(f"/e/{slug}")
+    assert re.search(rf'src="/og/{re.escape(slug)}\.jpg\?v=\d+"', page2.text)
+    og2 = re.search(r'property="og:image" content="([^"]+)"', page2.text)
+    assert og2 is not None
+    assert f"/og/{slug}.jpg?v=" in og2.group(1)
+    # Relative hero path is the absolute OG path without host
+    hero = re.search(r'class="hero[^"]*"\s+src="([^"]+)"', page2.text)
+    assert hero is not None
+    assert og2.group(1).endswith(hero.group(1))
+
     results = client.get(f"/r/{slug}")
-    assert f'src="/og/{slug}.jpg"' in results.text
+    assert hero.group(1) in results.text
 
 
-def test_event_page_hero_uses_og_image(client):
-    slug = create_event(client, name="Hero OG")
-    page = client.get(f"/e/{slug}")
-    assert f'src="/og/{slug}.jpg"' in page.text
-    assert "/static/beach-night.svg" not in page.text
-    results = client.get(f"/r/{slug}")
-    assert f'src="/og/{slug}.jpg"' in results.text
+def test_hero_compact_css_shows_full_og_frame():
+    from pathlib import Path
+
+    css = (Path(__file__).resolve().parents[1] / "app" / "static" / "style.css").read_text(
+        encoding="utf-8"
+    )
+    assert "aspect-ratio: 1200 / 630" in css
+    assert "height: 100px" not in css.split(".hero--compact")[1].split("}")[0]
 
 
 def test_empty_name_and_amount_get_defaults(client):

@@ -15,7 +15,11 @@ from app import crud
 from app.cleanup import RETENTION_DAYS
 from app.db import get_db
 from app.metrics import events_created_total
-from app.og_image import generate_and_store_background, render_event_og_jpeg
+from app.og_image import (
+    background_path_for,
+    generate_and_store_background,
+    render_event_og_jpeg,
+)
 from app.rate_limit import limiter
 from app.schemas import EventCreate
 from app.settlement import compute_balances, compute_totals, settle_debts
@@ -111,6 +115,16 @@ def _event_expires_at(event) -> datetime:
     return created + timedelta(days=RETENTION_DAYS)
 
 
+def _og_image_refs(base_url: str, event) -> tuple[str, str]:
+    """Absolute and relative URLs for the composed OG image (same asset everywhere)."""
+    path = background_path_for(event.slug)
+    bust = path.stat().st_mtime_ns if path is not None else 0
+    suffix = f"?v={bust}" if bust else ""
+    relative = f"/og/{event.slug}.jpg{suffix}"
+    absolute = f"{base_url}{relative}"
+    return absolute, relative
+
+
 def render_event_page(
     request: Request,
     db: Session,
@@ -121,12 +135,14 @@ def render_event_page(
     expenses = crud.get_expenses(db, event)
     total = sum((e.amount for e in expenses), Decimal("0"))
     base_url = PUBLIC_BASE_URL.rstrip("/") if PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
+    og_image_url, og_image_path = _og_image_refs(base_url, event)
     context = {
         "event": event,
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
-        "og_image_url": f"{base_url}/og/{event.slug}.jpg",
+        "og_image_url": og_image_url,
+        "og_image_path": og_image_path,
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
@@ -199,11 +215,14 @@ def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
 
 def _og_image_response(event) -> Response:
     image = render_event_og_jpeg(event.name, slug=event.slug)
+    path = background_path_for(event.slug)
+    etag = f'"{path.stat().st_mtime_ns if path is not None else 0}-{len(image)}"'
     return Response(
         content=image,
         media_type="image/jpeg",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=60, must-revalidate",
+            "ETag": etag,
             "Content-Length": str(len(image)),
         },
     )
@@ -232,6 +251,7 @@ def _results_context(request: Request, db: Session, event) -> dict:
     balances = compute_balances(totals)
     transfers = settle_debts(balances)
     base_url = PUBLIC_BASE_URL.rstrip("/") if PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
+    og_image_url, og_image_path = _og_image_refs(base_url, event)
     return {
         "event": event,
         "expenses": expenses,
@@ -239,6 +259,8 @@ def _results_context(request: Request, db: Session, event) -> dict:
         "totals": totals,
         "transfers": transfers,
         "share_url": f"{base_url}/r/{event.slug}",
+        "og_image_url": og_image_url,
+        "og_image_path": og_image_path,
     }
 
 
