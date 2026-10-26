@@ -38,6 +38,25 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Поровну", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+
+
+# #region agent log
+@app.middleware("http")
+async def _agent_log_all_requests(request: Request, call_next):
+    import time as _t
+    from fastapi.responses import JSONResponse as _J
+    from app.debug_og import agent_log, recent_hits
+    if request.url.path == "/debug/og-hits":
+        if request.query_params.get("token") != "0784a2":
+            raise HTTPException(status_code=404)
+        return _J({"hits": recent_hits()})
+    t0 = _t.perf_counter()
+    response = await call_next(request)
+    if not request.url.path.startswith(("/static", "/metrics", "/healthz")):
+        h = request.headers
+        agent_log(hypothesis_id="ABC", location="main.py:middleware", message="request", data={"method": request.method, "path": request.url.path, "status": response.status_code, "ms": int((_t.perf_counter() - t0) * 1000), "resp_len": response.headers.get("content-length"), "resp_type": response.headers.get("content-type"), "ua": h.get("user-agent", "")[:120], "accept": h.get("accept", "")[:80], "range": h.get("range"), "ip": h.get("x-forwarded-for")})
+    return response
+# #endregion
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(events.router)
