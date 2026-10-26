@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Сумма 2000 и частые описания" in response.text
+    assert "Отдельный цвет для частых описаний" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):

@@ -299,8 +299,15 @@ ul li {
 }
 
 .chip--frequent {
-  border-style: dashed;
-  border-color: rgba(248, 236, 217, 0.35);
+  color: #ffe0c2;
+  background: rgba(217, 122, 77, 0.28);
+  border-style: solid;
+  border-color: rgba(255, 138, 61, 0.55);
+}
+
+.chip--frequent:hover {
+  background: rgba(217, 122, 77, 0.4);
+  border-color: var(--flame);
 }
 
 .changelog {
