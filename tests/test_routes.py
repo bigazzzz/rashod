@@ -27,6 +27,9 @@ def test_index_shows_version_and_releases(client):
     assert "Обновления" in response.text
     assert "О приложении" in response.text
     assert 'href="/about"' in response.text
+    assert 'name="color-scheme" content="dark"' in response.text
+    css = client.get("/static/style.css")
+    assert "color-scheme: dark" in css.text
     assert "О приложении" in response.text
     assert "Копирование ссылки" not in response.text or True
 
