@@ -17,7 +17,7 @@
 
   <form method="post" action="/e/{{ event.slug }}/expenses">
     <label for="payer_name">Ваше имя</label>
-    <input type="text" id="payer_name" name="payer_name" placeholder="Имя" autocomplete="name" required>
+    <input type="text" id="payer_name" name="payer_name" placeholder="Имя или пусто → User001" autocomplete="name">
     {% if known_names %}
       <div class="chips" data-chip-target="payer_name" data-chip-mode="replace" role="group" aria-label="Известные имена">
         {% for name in known_names %}
@@ -25,9 +25,10 @@
         {% endfor %}
       </div>
     {% endif %}
+    <p class="hint">Пустое имя — подставится User001, User002 и т.д.</p>
 
     <label for="amount">Сумма</label>
-    <input type="text" id="amount" name="amount" placeholder="1000.00" inputmode="decimal" required>
+    <input type="text" id="amount" name="amount" placeholder="1000.00 или пусто → 0" inputmode="decimal">
     <div class="chips" data-chip-target="amount" role="group" aria-label="Быстрая сумма">
       {% for chip in amount_chips %}
         <button
@@ -38,7 +39,7 @@
         >{{ chip }}</button>
       {% endfor %}
     </div>
-    <p class="hint">0 — добавить участника без трат (он всё равно войдёт в дележ).</p>
+    <p class="hint">Пустая сумма или 0 — участник без трат (всё равно войдёт в дележ).</p>
 
     <label for="description">На что потрачено (необязательно)</label>
     <input type="text" id="description" name="description" placeholder="Продукты, бензин...">

@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Отдельный цвет для частых описаний" in response.text
+    assert "Пустые имя и сумма" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -69,6 +69,44 @@ def test_event_page_shows_frequent_description_chips(client):
     assert 'class="chip chip--frequent" data-chip-value="сувениры"' in response.text
     assert 'data-chip-value="разовое"' not in response.text
     assert response.text.count('data-chip-value="продукты"') == 1
+
+
+def test_empty_name_and_amount_get_defaults(client):
+    slug = create_event(client, name="Defaults")
+    first = client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "", "description": "", "amount": ""},
+        follow_redirects=False,
+    )
+    assert first.status_code == 303
+
+    second = client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "   ", "description": "чай", "amount": "  "},
+        follow_redirects=False,
+    )
+    assert second.status_code == 303
+
+    page = client.get(f"/e/{slug}")
+    assert "User001" in page.text
+    assert "User002" in page.text
+    assert page.text.count("участник") >= 2
+
+
+def test_auto_payer_name_continues_after_existing_user(client):
+    slug = create_event(client, name="UserSeq")
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "User003", "description": "", "amount": "0"},
+        follow_redirects=False,
+    )
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "", "description": "", "amount": "0"},
+        follow_redirects=False,
+    )
+    page = client.get(f"/e/{slug}")
+    assert "User004" in page.text
 
 
 def test_event_page_shows_known_name_chips(client):
@@ -124,7 +162,7 @@ def test_full_flow_totals_and_settlement(client):
     event_page = client.get(f"/e/{slug}")
     assert event_page.status_code == 200
     assert "участник" in event_page.text
-    assert "0 — добавить участника без трат" in event_page.text
+    assert "участник без трат" in event_page.text
 
     results = client.get(f"/e/{slug}/results")
     assert results.status_code == 200
