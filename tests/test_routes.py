@@ -12,6 +12,12 @@ def test_create_event_redirects_to_event_page(client):
     assert "Поездка на дачу" in response.text
 
 
+def test_event_slug_is_hex_without_punctuation(client):
+    slug = create_event(client, name="Hex slug")
+    assert len(slug) == 18
+    assert all(c in "0123456789abcdef" for c in slug)
+
+
 def test_index_shows_version_and_releases(client):
     from app import __version__
 

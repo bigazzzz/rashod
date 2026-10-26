@@ -9,7 +9,7 @@ from app.models import Event, Expense
 
 def generate_unique_slug(db: Session) -> str:
     while True:
-        slug = secrets.token_urlsafe(9)
+        slug = secrets.token_hex(9)
         if db.query(Event).filter(Event.slug == slug).first() is None:
             return slug
 
