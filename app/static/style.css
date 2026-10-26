@@ -264,6 +264,57 @@ ul li {
   color: var(--card-text-dim);
 }
 
+.changelog {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(248, 236, 217, 0.15);
+}
+
+.changelog-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--card-text-dim);
+  margin: 0 0 0.75rem;
+  border: none;
+  padding: 0;
+}
+
+.changelog-version {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.changelog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.changelog-list li {
+  padding: 0.45rem 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(248, 236, 217, 0.1);
+  font-size: 0.9rem;
+  color: var(--card-text-dim);
+}
+
+.changelog-list li:last-child {
+  border-bottom: none;
+}
+
+.changelog-list time {
+  color: var(--card-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.changelog-ver {
+  color: var(--gold);
+  font-weight: 600;
+}
+
 @media (max-width: 480px) {
   body {
     padding: 1rem 0.5rem;

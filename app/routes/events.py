@@ -13,6 +13,7 @@ from app.rate_limit import limiter
 from app.schemas import EventCreate
 from app.settlement import compute_balances, compute_totals, settle_debts
 from app.templating import templates
+from app.versions import current_version, load_releases
 
 router = APIRouter()
 
@@ -62,7 +63,14 @@ def render_event_page(
 
 @router.get("/")
 def index(request: Request):
-    return templates.TemplateResponse(request, "index.html", {})
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "app_version": current_version(),
+            "releases": load_releases(limit=3),
+        },
+    )
 
 
 @router.post("/events")
@@ -73,7 +81,14 @@ def create_event(request: Request, name: str = Form(...), db: Session = Depends(
     except ValidationError as exc:
         error = exc.errors()[0]["msg"]
         return templates.TemplateResponse(
-            request, "index.html", {"error": error}, status_code=400
+            request,
+            "index.html",
+            {
+                "error": error,
+                "app_version": current_version(),
+                "releases": load_releases(limit=3),
+            },
+            status_code=400,
         )
 
     event = crud.create_event(db, data.name)

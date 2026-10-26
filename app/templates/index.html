@@ -14,4 +14,17 @@
     <input type="text" id="name" name="name" placeholder="Поездка на дачу" required>
     <button type="submit">Создать</button>
   </form>
+
+  <section class="changelog" aria-label="Обновления">
+    <h2 class="changelog-title">Обновления <span class="changelog-version">v{{ app_version }}</span></h2>
+    <ul class="changelog-list">
+      {% for release in releases %}
+        <li>
+          <time datetime="{{ release.date }}">{{ release.date }}</time>
+          <span class="changelog-ver">v{{ release.version }}</span>
+          — {{ release.summary }}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endblock %}

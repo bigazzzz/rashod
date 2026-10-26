@@ -12,6 +12,16 @@ def test_create_event_redirects_to_event_page(client):
     assert "Поездка на дачу" in response.text
 
 
+def test_index_shows_version_and_releases(client):
+    from app import __version__
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert f"v{__version__}" in response.text
+    assert "Обновления" in response.text
+    assert "Версия и список обновлений на главной" in response.text
+
+
 def test_full_flow_totals_and_settlement(client):
     slug = create_event(client, name="Ужин")
 
