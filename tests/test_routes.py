@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "концерт" in response.text
+    assert "Убраны плашки сумм" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -30,6 +30,8 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert 'data-chip-value="000"' in response.text
     assert 'data-chip-value="300"' in response.text
     assert 'data-chip-value="5000"' in response.text
+    assert 'data-chip-value="3500"' not in response.text
+    assert 'data-chip-value="4500"' not in response.text
     assert 'data-chip-mode="append"' in response.text
     # 000 is the first amount chip
     amount_pos = response.text.find('data-chip-target="amount"')
