@@ -11,7 +11,7 @@ class EventCreate(BaseModel):
     def name_not_blank(cls, v: str) -> str:
         v = v.strip()
         if not v:
-            raise ValueError("Название мероприятия не может быть пустым")
+            raise ValueError("Название события не может быть пустым")
         return v
 
 

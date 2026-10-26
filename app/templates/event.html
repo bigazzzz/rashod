@@ -33,8 +33,8 @@
     </button>
   </div>
   <div id="qr-panel" class="qr-panel" hidden>
-    <div id="qr-code" class="qr-code" role="img" aria-label="QR-код ссылки на мероприятие"></div>
-    <p class="hint">Отсканируйте, чтобы открыть ссылку на мероприятие</p>
+    <div id="qr-code" class="qr-code" role="img" aria-label="QR-код ссылки на событие"></div>
+    <p class="hint">Отсканируйте, чтобы открыть ссылку на событие</p>
   </div>
 
   {% if error %}
@@ -80,34 +80,6 @@
 
     <button type="submit">Добавить трату</button>
   </form>
-
-  <h2>Внесённые траты</h2>
-  {% if expenses %}
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for expense in expenses %}
-            <tr>
-              <td>{{ expense.payer_name }}</td>
-              <td>{{ expense.description or "—" }}</td>
-              <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
-              <td>
-                <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
-                  <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
-  {% else %}
-    <p>Пока никто ничего не добавил.</p>
-  {% endif %}
 
   <p><a href="/e/{{ event.slug }}/results">Посмотреть результаты →</a></p>
 

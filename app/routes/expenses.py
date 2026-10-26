@@ -69,4 +69,4 @@ def create_expense(
 def delete_expense(request: Request, slug: str, expense_id: int, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
     crud.delete_expense(db, event, expense_id)
-    return RedirectResponse(url=f"/e/{event.slug}", status_code=303)
+    return RedirectResponse(url=f"/e/{event.slug}/results", status_code=303)

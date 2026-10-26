@@ -36,7 +36,8 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert 'data-chip-value="000"' in response.text
     assert 'data-chip-value="2000"' in response.text
     assert 'data-chip-value="2500"' not in response.text
-    assert 'data-chip-value="5000"' in response.text
+    assert 'data-chip-value="3000"' not in response.text
+    assert 'data-chip-value="5000"' not in response.text
     assert 'data-chip-mode="append"' in response.text
     # 000 is the first amount chip
     amount_pos = response.text.find('data-chip-target="amount"')
@@ -170,7 +171,8 @@ def test_empty_name_and_amount_get_defaults(client):
     page = client.get(f"/e/{slug}")
     assert "User001" in page.text
     assert "User002" in page.text
-    assert page.text.count("участник") >= 2
+    results = client.get(f"/e/{slug}/results")
+    assert results.text.count("участник") >= 2
 
 
 def test_auto_payer_name_continues_after_existing_user(client):
@@ -241,16 +243,24 @@ def test_full_flow_totals_and_settlement(client):
 
     event_page = client.get(f"/e/{slug}")
     assert event_page.status_code == 200
-    assert "участник" in event_page.text
     assert "участник без трат" in event_page.text
+    assert "Внесённые траты" not in event_page.text
 
     results = client.get(f"/e/{slug}/results")
     assert results.status_code == 200
+    assert "Внесённые траты" in results.text
+    assert "участник" in results.text
     assert "Alice" in results.text
     assert "Bob" in results.text
     assert "Carol" in results.text
     # Bob paid 0, so he owes his share
     assert "Bob → Alice" in results.text
+    csv_resp = client.get(f"/e/{slug}/results.csv")
+    assert csv_resp.status_code == 200
+    assert csv_resp.headers["content-type"].startswith("text/csv")
+    assert csv_resp.content.startswith(b"\xef\xbb\xbf")
+    assert b"Alice" in csv_resp.content
+    assert b"Bob" in csv_resp.content
 
 
 def test_negative_amount_rejected(client):
@@ -292,12 +302,12 @@ def test_expense_without_description_is_accepted(client):
     )
     assert response.status_code == 303
 
-    event_page = client.get(f"/e/{slug}")
-    assert "Alice" in event_page.text
-    assert "—" in event_page.text
+    results = client.get(f"/e/{slug}/results")
+    assert "Alice" in results.text
+    assert "—" in results.text
 
 
-def test_event_page_shows_total(client):
+def test_results_page_shows_total(client):
     slug = create_event(client, name="Итоги")
     client.post(
         f"/e/{slug}/expenses",
@@ -309,9 +319,9 @@ def test_event_page_shows_total(client):
         data={"payer_name": "Bob", "description": "Вода", "amount": "10"},
         follow_redirects=False,
     )
-    event_page = client.get(f"/e/{slug}")
-    assert "Всего потрачено" in event_page.text
-    assert "50.00" in event_page.text
+    results = client.get(f"/e/{slug}/results")
+    assert "Всего потрачено" in results.text
+    assert "50.00" in results.text
 
 
 def _get_expense_id(slug, payer_name):
@@ -341,10 +351,11 @@ def test_delete_expense_removes_it(client):
         f"/e/{slug}/expenses/{expense_id}/delete", follow_redirects=False
     )
     assert response.status_code == 303
+    assert response.headers["location"] == f"/e/{slug}/results"
 
-    event_page = client.get(f"/e/{slug}")
-    assert "Alice" not in event_page.text
-    assert "Пока никто ничего не добавил" in event_page.text
+    results = client.get(f"/e/{slug}/results")
+    assert "Alice" not in results.text
+    assert "Пока никто ничего не добавил" in results.text
 
 
 def test_delete_expense_from_other_event_is_ignored(client):
@@ -361,8 +372,15 @@ def test_delete_expense_from_other_event_is_ignored(client):
     # trying to delete event A's expense through event B's URL must not remove it
     client.post(f"/e/{slug_b}/expenses/{expense_id}/delete", follow_redirects=False)
 
-    event_page = client.get(f"/e/{slug_a}")
-    assert "Alice" in event_page.text
+    results = client.get(f"/e/{slug_a}/results")
+    assert "Alice" in results.text
+
+
+def test_index_uses_event_wording(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Название события" in response.text
+    assert "мероприятие" not in response.text.lower()
 
 
 def test_create_event_rate_limited_after_threshold(client):

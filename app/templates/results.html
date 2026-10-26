@@ -5,6 +5,36 @@
 {% block content %}
   <h1>Результаты: {{ event.name }}</h1>
 
+  <h2>Внесённые траты</h2>
+  {% if expenses %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr>
+              <td>{{ expense.payer_name }}</td>
+              <td>{{ expense.description or "—" }}</td>
+              <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
+              <td>
+                <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
+                  <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
+  {% else %}
+    <p>Пока никто ничего не добавил.</p>
+  {% endif %}
+
+  <p><a class="export-link" href="/e/{{ event.slug }}/results.csv">Скачать CSV</a></p>
+
   <h2>Кто сколько потратил</h2>
   {% if totals %}
     <div class="table-scroll">
@@ -34,5 +64,5 @@
     <p>Все квиты, переводов не требуется.</p>
   {% endif %}
 
-  <p><a href="/e/{{ event.slug }}">← Назад к мероприятию</a></p>
+  <p><a href="/e/{{ event.slug }}">← Назад к событию</a></p>
 {% endblock %}

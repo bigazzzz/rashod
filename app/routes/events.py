@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -39,7 +41,7 @@ PUBLIC_BASE_URL = _validate_public_base_url(os.environ.get("PUBLIC_BASE_URL"))
 def _get_event_or_404(db: Session, slug: str):
     event = crud.get_event_by_slug(db, slug)
     if event is None:
-        raise HTTPException(status_code=404, detail="Мероприятие не найдено")
+        raise HTTPException(status_code=404, detail="Событие не найдено")
     return event
 
 
@@ -66,9 +68,6 @@ AMOUNT_CHIPS = (
     "1000",
     "1500",
     "2000",
-    "3000",
-    "4000",
-    "5000",
 )
 
 _DEFAULT_DESCRIPTION_SET = frozenset(DESCRIPTION_CHIPS)
@@ -206,21 +205,65 @@ def event_og_image_legacy(slug: str, db: Session = Depends(get_db)):
     return _og_image_response(_get_event_or_404(db, slug))
 
 
-@router.get("/e/{slug}/results")
-def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
-    event = _get_event_or_404(db, slug)
+def _results_context(request: Request, db: Session, event) -> dict:
     expenses = crud.get_expenses(db, event)
-
+    total = sum((e.amount for e in expenses), Decimal("0"))
     totals = compute_totals([(e.payer_name, e.amount) for e in expenses])
     balances = compute_balances(totals)
     transfers = settle_debts(balances)
+    return {
+        "event": event,
+        "expenses": expenses,
+        "total": total,
+        "totals": totals,
+        "transfers": transfers,
+    }
 
+
+def _results_csv_response(event, expenses, transfers) -> Response:
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Кто", "На что", "Сумма"])
+    for expense in expenses:
+        writer.writerow(
+            [
+                expense.payer_name,
+                expense.description or "",
+                f"{expense.amount:.2f}",
+            ]
+        )
+    writer.writerow([])
+    writer.writerow(["Кто", "Кому", "Сумма"])
+    for transfer in transfers:
+        writer.writerow(
+            [
+                transfer.from_person,
+                transfer.to_person,
+                f"{transfer.amount:.2f}",
+            ]
+        )
+    # UTF-8 BOM so Excel on Windows opens Cyrillic correctly
+    payload = ("\ufeff" + buf.getvalue()).encode("utf-8")
+    filename = f"porovnu-{event.slug}.csv"
+    return Response(
+        content=payload,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/e/{slug}/results")
+def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
+    event = _get_event_or_404(db, slug)
     return templates.TemplateResponse(
         request,
         "results.html",
-        {
-            "event": event,
-            "totals": totals,
-            "transfers": transfers,
-        },
+        _results_context(request, db, event),
     )
+
+
+@router.get("/e/{slug}/results.csv")
+def results_csv(slug: str, db: Session = Depends(get_db)):
+    event = _get_event_or_404(db, slug)
+    ctx = _results_context(None, db, event)
+    return _results_csv_response(event, ctx["expenses"], ctx["transfers"])
