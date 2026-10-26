@@ -154,16 +154,31 @@ def render_event_page(
     return templates.TemplateResponse(request, "event.html", context, status_code=status_code)
 
 
+SITE_OG_TITLE = "Посчитать поровну чек"
+
+
+def _public_base_url(request: Request) -> str:
+    if PUBLIC_BASE_URL:
+        return PUBLIC_BASE_URL.rstrip("/")
+    return str(request.base_url).rstrip("/")
+
+
+def _index_context(request: Request, **extra) -> dict:
+    base_url = _public_base_url(request)
+    context = {
+        "app_version": current_version(),
+        "releases": load_releases(limit=3),
+        "share_url": f"{base_url}/",
+        "og_image_url": f"{base_url}/og/site.jpg",
+        "og_image_path": "/og/site.jpg",
+    }
+    context.update(extra)
+    return context
+
+
 @router.get("/")
 def index(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "index.html",
-        {
-            "app_version": current_version(),
-            "releases": load_releases(limit=3),
-        },
-    )
+    return templates.TemplateResponse(request, "index.html", _index_context(request))
 
 
 @router.get("/about")
@@ -193,11 +208,7 @@ def create_event(
         return templates.TemplateResponse(
             request,
             "index.html",
-            {
-                "error": error,
-                "app_version": current_version(),
-                "releases": load_releases(limit=3),
-            },
+            _index_context(request, error=error),
             status_code=400,
         )
 
@@ -213,19 +224,30 @@ def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
     return render_event_page(request, db, event)
 
 
-def _og_image_response(event) -> Response:
-    image = render_event_og_jpeg(event.name, slug=event.slug)
-    path = background_path_for(event.slug)
-    etag = f'"{path.stat().st_mtime_ns if path is not None else 0}-{len(image)}"'
+def _jpeg_response(image: bytes, *, etag: str, max_age: int = 60) -> Response:
     return Response(
         content=image,
         media_type="image/jpeg",
         headers={
-            "Cache-Control": "public, max-age=60, must-revalidate",
+            "Cache-Control": f"public, max-age={max_age}, must-revalidate",
             "ETag": etag,
             "Content-Length": str(len(image)),
         },
     )
+
+
+def _og_image_response(event) -> Response:
+    image = render_event_og_jpeg(event.name, slug=event.slug)
+    path = background_path_for(event.slug)
+    etag = f'"{path.stat().st_mtime_ns if path is not None else 0}-{len(image)}"'
+    return _jpeg_response(image, etag=etag)
+
+
+@router.api_route("/og/site.jpg", methods=["GET", "HEAD"])
+def site_og_image():
+    """Homepage / share preview — composed default card (must be before /og/{slug}.jpg)."""
+    image = render_event_og_jpeg(SITE_OG_TITLE)
+    return _jpeg_response(image, etag=f'"site-{len(image)}"', max_age=3600)
 
 
 @router.api_route("/og/{slug}.jpg", methods=["GET", "HEAD"])

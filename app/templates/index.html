@@ -1,10 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Посчитать поровну чек между друзьями — Поровну{% endblock %}
 {% block meta_description %}Как посчитать поровну чек между друзьями онлайн: создайте событие, отправьте уникальную ссылку — и сервис сам разделит расходы и покажет, кто кому должен.{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ share_url }}">{% endblock %}
+{% block og_image %}
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:secure_url" content="{{ og_image_url }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Поровну">
+{% endblock %}
+{% block twitter_card %}summary_large_image{% endblock %}
 {% block hero_class %} hero--compact{% endblock %}
-{% block hero_src %}/static/og-bg.jpg{% endblock %}
-{% block hero_alt %}Ночной пляж у костра — фон по умолчанию{% endblock %}
-{% block hero_attrs %}width="1280" height="720"{% endblock %}
+{% block hero_src %}{{ og_image_path }}{% endblock %}
+{% block hero_alt %}Превью Поровну{% endblock %}
+{% block hero_attrs %}width="1200" height="630"{% endblock %}
 {% block content %}
   <h1>Поровну</h1>
   <p>Простой способ посчитать поровну чек между друзьями: создайте событие — для него сформируется уникальная ссылка. Отправьте её друзьям: по этой ссылке каждый сможет открыть форму и внести свои траты.</p>
@@ -19,7 +29,14 @@
     <button type="submit">Создать</button>
   </form>
 
-  <p class="about-nav"><a href="/about">О приложении</a></p>
+  <p class="hint">Поделиться ссылкой на сервис</p>
+  {% set share_title = "Поровну" %}
+  {% set share_qr_hint = "Отсканируйте, чтобы открыть Поровну" %}
+  {% include "_share.html" %}
+
+  <p class="action-row">
+    <a class="btn-secondary" href="/about">О приложении</a>
+  </p>
 
   <section class="changelog" aria-label="Обновления">
     <h2 class="changelog-title">Обновления <span class="changelog-version">v{{ app_version }}</span></h2>
@@ -33,5 +50,7 @@
       {% endfor %}
     </ul>
   </section>
-{% endblock %}
 
+  <script src="/static/qrcode.min.js"></script>
+  <script src="/static/share.js"></script>
+{% endblock %}

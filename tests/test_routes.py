@@ -26,15 +26,21 @@ def test_index_shows_version_and_releases(client):
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
     assert "О приложении" in response.text
-    assert 'href="/about"' in response.text
+    assert 'class="btn-secondary" href="/about"' in response.text
     assert 'name="color-scheme" content="dark"' in response.text
-    assert 'src="/static/og-bg.jpg"' in response.text
+    assert 'src="/og/site.jpg"' in response.text
     assert "/static/beach-night.svg" not in response.text
-    assert client.get("/static/og-bg.jpg").status_code == 200
+    assert 'id="share-link"' in response.text
+    assert 'id="copy-btn"' in response.text
+    assert 'id="qr-btn"' in response.text
+    assert "/static/share.js" in response.text
+    assert 'property="og:image" content="http://testserver/og/site.jpg"' in response.text
+    assert 'name="twitter:card" content="summary_large_image"' in response.text
+    site_og = client.get("/og/site.jpg")
+    assert site_og.status_code == 200
+    assert site_og.content[:3] == b"\xff\xd8\xff"
     css = client.get("/static/style.css")
     assert "color-scheme: dark" in css.text
-    assert "О приложении" in response.text
-    assert "Копирование ссылки" not in response.text or True
 
 
 def test_event_page_shows_amount_and_description_chips(client):
