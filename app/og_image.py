@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
@@ -125,6 +126,24 @@ def delete_background_for(slug: str) -> None:
         path.unlink(missing_ok=True)
     except OSError as exc:
         log.warning("Failed to delete OG background for %s: %s", slug, exc)
+
+
+def cleanup_stale_og_backgrounds(cutoff: datetime) -> int:
+    """Delete AI OG backgrounds older than cutoff (by file mtime). Returns count removed."""
+    if not OG_IMAGE_DIR.is_dir():
+        return 0
+    cutoff_ts = cutoff.timestamp()
+    removed = 0
+    for path in OG_IMAGE_DIR.glob("*.jpg"):
+        if path.name.startswith("."):
+            continue
+        try:
+            if path.stat().st_mtime < cutoff_ts:
+                path.unlink(missing_ok=True)
+                removed += 1
+        except OSError as exc:
+            log.warning("Failed to purge stale OG file %s: %s", path, exc)
+    return removed
 
 
 def _load_background_image(path: Path | None) -> Image.Image:

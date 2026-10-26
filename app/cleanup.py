@@ -27,7 +27,7 @@ RETENTION_DAYS = parse_retention_days(os.environ.get("EVENT_RETENTION_DAYS", "36
 
 def cleanup_old_events() -> int:
     from app.models import Event
-    from app.og_image import delete_background_for
+    from app.og_image import cleanup_stale_og_backgrounds, delete_background_for
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
     db = SessionLocal()
@@ -37,9 +37,13 @@ def cleanup_old_events() -> int:
         deleted = crud.delete_events_older_than(db, cutoff)
         for slug in slugs:
             delete_background_for(slug)
+        # Also drop orphan / leftover AI backgrounds by file age (same retention).
+        purged = cleanup_stale_og_backgrounds(cutoff)
         if deleted:
             events_deleted_total.inc(deleted)
             log.info("Cleaned up %d event(s) older than %d days", deleted, RETENTION_DAYS)
+        if purged:
+            log.info("Purged %d stale OG background(s) older than %d days", purged, RETENTION_DAYS)
         return deleted
     finally:
         db.close()

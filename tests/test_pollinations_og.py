@@ -171,3 +171,31 @@ def test_cleanup_removes_og_file(client):
     assert deleted >= 1
     assert background_path_for(slug) is None
     assert not (Path(OG_IMAGE_DIR) / f"{slug}.jpg").exists()
+
+
+def test_cleanup_purges_orphan_og_files_by_mtime(client):
+    import os
+    from datetime import datetime, timedelta, timezone
+
+    from app.cleanup import RETENTION_DAYS, cleanup_old_events
+    from app.og_image import cleanup_stale_og_backgrounds
+
+    orphan = Path(OG_IMAGE_DIR) / "orphanoldslug0001.jpg"
+    Image.new("RGB", (80, 80), (1, 2, 3)).save(orphan, format="JPEG")
+    old_ts = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS + 10)).timestamp()
+    os.utime(orphan, (old_ts, old_ts))
+
+    fresh = Path(OG_IMAGE_DIR) / "freshslugkeep0001.jpg"
+    Image.new("RGB", (80, 80), (4, 5, 6)).save(fresh, format="JPEG")
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
+    purged = cleanup_stale_og_backgrounds(cutoff)
+    assert purged >= 1
+    assert not orphan.exists()
+    assert fresh.exists()
+
+    # Full cleanup job also runs the purge
+    Image.new("RGB", (80, 80), (7, 8, 9)).save(orphan, format="JPEG")
+    os.utime(orphan, (old_ts, old_ts))
+    cleanup_old_events()
+    assert not orphan.exists()
