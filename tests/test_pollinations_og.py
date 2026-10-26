@@ -14,7 +14,7 @@ from app.og_image import (
     render_event_og_jpeg,
     save_generated_background,
 )
-from app.pollinations import build_prompt, fetch_cartoon_background
+from app.pollinations import build_prompt, event_name_to_english, fetch_cartoon_background
 
 
 def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
@@ -23,9 +23,18 @@ def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
     return buf.getvalue()
 
 
-def test_build_prompt_mentions_title_and_no_text():
+def test_event_name_to_english_translates_common_phrases():
+    assert "birthday" in event_name_to_english("День рождения Маши").lower()
+    assert "picnic" in event_name_to_english("Пикник в парке").lower()
+    assert "hiking" in event_name_to_english("Поход на Алтай").lower()
+    # Already Latin — keep as-is (normalized)
+    assert event_name_to_english("Team dinner").lower() == "team dinner"
+
+
+def test_build_prompt_uses_english_subject_and_no_text():
     prompt = build_prompt("Поход на Алтай")
-    assert "Поход на Алтай" in prompt
+    assert "Поход" not in prompt
+    assert "hiking" in prompt.lower()
     assert "no text" in prompt
     assert "cartoon" in prompt.lower()
 

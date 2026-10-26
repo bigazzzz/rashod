@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -15,11 +16,71 @@ IMAGE_BASE = "https://image.pollinations.ai/prompt"
 TIMEOUT_SECONDS = 45
 MAX_ATTEMPTS = 3
 
+# Longest phrases first — used to turn Russian event titles into English prompt subjects.
+_RU_PHRASES: tuple[tuple[str, str], ...] = (
+    ("день рождения", "birthday party"),
+    ("новый год", "new year celebration"),
+    ("корпоратив", "office party"),
+    ("мальчишник", "bachelor party"),
+    ("девичник", "bachelorette party"),
+    ("юбилей", "anniversary celebration"),
+    ("свадьба", "wedding"),
+    ("пикник", "picnic"),
+    ("шашлык", "barbecue picnic"),
+    ("поход", "hiking trip"),
+    ("путешествие", "travel adventure"),
+    ("отпуск", "vacation"),
+    ("вечеринка", "party"),
+    ("встреча", "friendly gathering"),
+    ("ужин", "dinner gathering"),
+    ("обед", "lunch gathering"),
+    ("завтрак", "breakfast gathering"),
+    ("концерт", "concert"),
+    ("фестиваль", "festival"),
+    ("спорт", "sports event"),
+    ("футбол", "football match"),
+    ("баня", "sauna gathering"),
+    ("дача", "countryside cottage"),
+    ("ресторан", "restaurant dinner"),
+    ("бар", "bar night out"),
+    ("кино", "cinema night"),
+    ("театр", "theater evening"),
+    ("море", "seaside vacation"),
+    ("горы", "mountain landscape"),
+    ("парк", "park"),
+    ("алтай", "Altai mountains"),
+)
+
+_CYRILLIC_RE = re.compile(r"[а-яёА-ЯЁ]+")
+_SPACE_RE = re.compile(r"\s+")
+
+
+def event_name_to_english(event_name: str) -> str:
+    """Map a (often Russian) event title to a short English image-prompt subject."""
+    raw = (event_name or "").strip()
+    if not raw:
+        return "celebration"
+
+    # Already mostly Latin — keep the title, drop leftover Cyrillic names.
+    if not _CYRILLIC_RE.search(raw):
+        cleaned = _SPACE_RE.sub(" ", raw).strip(" ,.-")
+        return cleaned or "celebration"
+
+    text = raw.casefold()
+    for ru, en in _RU_PHRASES:
+        if ru in text:
+            text = text.replace(ru, f" {en} ")
+
+    # Drop remaining Cyrillic (personal names etc.) — model handles English better.
+    text = _CYRILLIC_RE.sub(" ", text)
+    text = _SPACE_RE.sub(" ", text).strip(" ,.-")
+    return text or "celebration"
+
 
 def build_prompt(event_name: str) -> str:
-    title = (event_name or "celebration").strip() or "celebration"
+    subject = event_name_to_english(event_name)
     return (
-        f"cartoon illustrated scene about: {title}. "
+        f"cartoon illustrated scene about: {subject}. "
         "cute colorful cartoon style, friendly atmosphere, wide landscape composition, "
         "no text, no letters, no watermark, no logo, no typography"
     )
