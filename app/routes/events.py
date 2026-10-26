@@ -1,15 +1,17 @@
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.cleanup import RETENTION_DAYS
 from app.db import get_db
+from app.debug_og import agent_log, recent_hits
 from app.metrics import events_created_total
 from app.og_image import render_event_og_png
 from app.rate_limit import limiter
@@ -174,32 +176,108 @@ def create_event(request: Request, name: str = Form(...), db: Session = Depends(
 
 @router.get("/e/{slug}")
 def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
+    t0 = time.perf_counter()
     event = _get_event_or_404(db, slug)
-    return render_event_page(request, db, event)
+    response = render_event_page(request, db, event)
+    # #region agent log
+    ua = request.headers.get("user-agent", "")
+    agent_log(
+        hypothesis_id="A",
+        location="events.py:event_page",
+        message="event page served",
+        data={
+            "slug": slug,
+            "method": request.method,
+            "ua": ua[:180],
+            "is_bot": any(
+                token in ua.lower()
+                for token in (
+                    "telegrambot",
+                    "vkshare",
+                    "vkbot",
+                    "facebookexternalhit",
+                    "twitterbot",
+                    "whatsapp",
+                    "slackbot",
+                    "linkedinbot",
+                )
+            ),
+            "base_url_env": bool(PUBLIC_BASE_URL),
+            "elapsed_ms": int((time.perf_counter() - t0) * 1000),
+        },
+    )
+    # #endregion
+    return response
 
 
-def _og_image_response(event) -> Response:
+def _og_image_response(event, *, request: Request | None = None, route: str = "") -> Response:
+    t0 = time.perf_counter()
     png = render_event_og_png(event.name)
+    elapsed_ms = int((time.perf_counter() - t0) * 1000)
+    # #region agent log
+    ua = request.headers.get("user-agent", "") if request is not None else ""
+    agent_log(
+        hypothesis_id="C",
+        location="events.py:og_image",
+        message="og image rendered",
+        data={
+            "slug": event.slug,
+            "route": route,
+            "method": request.method if request is not None else "?",
+            "ua": ua[:180],
+            "bytes": len(png),
+            "render_ms": elapsed_ms,
+            "is_bot": any(
+                token in ua.lower()
+                for token in (
+                    "telegrambot",
+                    "vkshare",
+                    "vkbot",
+                    "facebookexternalhit",
+                    "twitterbot",
+                    "whatsapp",
+                )
+            ),
+        },
+    )
+    # #endregion
     return Response(
         content=png,
         media_type="image/png",
         headers={
             "Cache-Control": "public, max-age=3600",
+            "Content-Length": str(len(png)),
         },
     )
 
 
 @router.api_route("/og/{slug}.png", methods=["GET", "HEAD"])
-def event_og_image(slug: str, db: Session = Depends(get_db)):
+def event_og_image(request: Request, slug: str, db: Session = Depends(get_db)):
     # Outside /e/ so social crawlers are not blocked if robots ever restricts events again.
     event = _get_event_or_404(db, slug)
-    return _og_image_response(event)
+    return _og_image_response(event, request=request, route="/og/{slug}.png")
 
 
 @router.api_route("/e/{slug}/og.png", methods=["GET", "HEAD"], include_in_schema=False)
-def event_og_image_legacy(slug: str, db: Session = Depends(get_db)):
+def event_og_image_legacy(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
-    return _og_image_response(event)
+    return _og_image_response(event, request=request, route="/e/{slug}/og.png")
+
+
+@router.get("/debug/og-hits", include_in_schema=False)
+def debug_og_hits(request: Request):
+    # Temporary debug endpoint; token keeps casual scanners out.
+    if request.query_params.get("token") != "0784a2":
+        raise HTTPException(status_code=404, detail="Not found")
+    # #region agent log
+    agent_log(
+        hypothesis_id="D",
+        location="events.py:debug_og_hits",
+        message="hits dumped",
+        data={"count": len(recent_hits())},
+    )
+    # #endregion
+    return JSONResponse({"hits": recent_hits()})
 
 
 @router.get("/e/{slug}/results")
