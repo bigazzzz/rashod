@@ -71,7 +71,10 @@
     <button type="submit">Добавить трату</button>
   </form>
 
-  <p><a href="/r/{{ event.slug }}">Посмотреть результаты →</a></p>
+  <p class="action-row">
+    <a class="btn-secondary" href="/r/{{ event.slug }}">Результаты</a>
+    <a class="btn-export" href="/r/{{ event.slug }}.csv">Скачать файл</a>
+  </p>
 
   <script src="/static/qrcode.min.js"></script>
   <script src="/static/share.js"></script>

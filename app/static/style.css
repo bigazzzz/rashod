@@ -130,34 +130,33 @@ form {
   padding: 0.6rem 1rem;
 }
 
-#qr-btn,
-#copy-btn {
+.share-actions .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   min-width: 44px;
-  padding: 0.55rem;
+  min-height: 44px;
+  padding: 0;
   background: transparent;
   color: var(--gold);
   border: 1px solid rgba(240, 184, 78, 0.45);
+  border-radius: 8px;
   box-shadow: none;
 }
 
-#qr-btn:hover,
-#copy-btn:hover {
+.share-actions .btn-icon:hover {
   background: rgba(240, 184, 78, 0.12);
   box-shadow: none;
   transform: none;
 }
 
-#qr-btn[aria-expanded="true"] {
+.share-actions .btn-icon[aria-expanded="true"] {
   border-color: var(--gold);
   background: rgba(240, 184, 78, 0.18);
 }
 
-.qr-icon,
-.copy-icon {
+.btn-icon__svg {
   display: block;
 }
 
@@ -199,8 +198,7 @@ form {
     min-width: 0;
   }
 
-  #qr-btn,
-  #copy-btn {
+  .share-actions .btn-icon {
     width: 44px;
   }
 }

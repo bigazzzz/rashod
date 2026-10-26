@@ -159,6 +159,7 @@ def test_event_page_has_qr_controls(client):
     assert 'id="qr-panel"' in response.text
     assert 'id="qr-code"' in response.text
     assert 'aria-label="Показать QR-код"' in response.text
+    assert 'class="btn-icon"' in response.text
     assert 'data-event-name="QR тест"' in response.text
     assert "/static/qrcode.min.js" in response.text
     assert client.get("/static/qrcode.min.js").status_code == 200
@@ -257,6 +258,10 @@ def test_full_flow_totals_and_settlement(client):
     assert event_page.status_code == 200
     assert "участник без трат" in event_page.text
     assert "Внесённые траты" not in event_page.text
+    assert 'class="btn-secondary"' in event_page.text
+    assert ">Результаты<" in event_page.text
+    assert 'class="btn-export"' in event_page.text
+    assert ">Скачать файл<" in event_page.text
 
     results = client.get(f"/r/{slug}")
     assert results.status_code == 200

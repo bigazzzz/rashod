@@ -2,14 +2,15 @@
     <input type="text" id="share-link" value="{{ share_url }}" readonly onclick="this.select()">
     <div class="share-actions">
       <button type="button" id="share-btn" data-event-name="{{ share_title }}">Поделиться</button>
-      <button type="button" id="qr-btn" aria-expanded="false" aria-controls="qr-panel" aria-label="Показать QR-код" title="QR-код">
-        <svg class="qr-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm12.5-2h1.5v1.5H17.5V11zm-2 2H17v1.5h-1.5V13zm2 2H19v1.5h-1.5V15zm2-2H21v1.5h-1.5V13zm-4 4H17V21h-1.5v-2.5H13V17h2.5v-1.5H17V17zm4 0H21V21h-3.5v-1.5H19V17h1.5v-1.5H21V17z"/>
+      <button type="button" id="qr-btn" class="btn-icon" aria-expanded="false" aria-controls="qr-panel" aria-label="Показать QR-код" title="QR-код">
+        <svg class="btn-icon__svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 3h2v3m4-3v3h-2m0-6h2v2m-6 0h2v2"/>
         </svg>
       </button>
-      <button type="button" id="copy-btn" class="icon-share-btn" aria-label="Копировать ссылку" title="Копировать ссылку">
-        <svg class="copy-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+      <button type="button" id="copy-btn" class="btn-icon" aria-label="Копировать ссылку" title="Копировать ссылку">
+        <svg class="btn-icon__svg copy-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M5 15V5a2 2 0 0 1 2-2h10"/>
         </svg>
       </button>
     </div>
