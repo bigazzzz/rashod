@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Красивое PNG-превью" in response.text
+    assert "Превью в VK" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -78,18 +78,33 @@ def test_event_page_has_open_graph_preview(client):
     assert 'property="og:title" content="Поход в горы · Поровну"' in response.text
     assert "Открой ссылку, добавь траты в «Поход в горы»" in response.text
     assert f'property="og:url" content="http://testserver/e/{slug}"' in response.text
-    assert f'property="og:image" content="http://testserver/e/{slug}/og.png"' in response.text
+    assert f'property="og:image" content="http://testserver/og/{slug}.png"' in response.text
     assert 'property="og:image:width" content="1200"' in response.text
     assert 'name="twitter:card" content="summary_large_image"' in response.text
 
 
 def test_event_og_image_is_png(client):
     slug = create_event(client, name="Ужин у костра")
-    response = client.get(f"/e/{slug}/og.png")
+    response = client.get(f"/og/{slug}.png")
     assert response.status_code == 200
-    assert response.headers["content-type"] == "image/png"
+    assert response.headers["content-type"].startswith("image/png")
     assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
     assert len(response.content) > 10_000
+
+    head = client.head(f"/og/{slug}.png")
+    assert head.status_code == 200
+    assert head.headers["content-type"].startswith("image/png")
+
+    legacy = client.get(f"/e/{slug}/og.png")
+    assert legacy.status_code == 200
+    assert legacy.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_robots_allows_event_pages(client):
+    response = client.get("/robots.txt")
+    assert response.status_code == 200
+    assert "Disallow: /e/" not in response.text
+    assert "Allow: /" in response.text
 
 
 def test_event_page_shows_expiry_date(client):

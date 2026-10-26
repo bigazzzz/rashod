@@ -69,4 +69,6 @@ def healthz():
 
 @app.get("/robots.txt", include_in_schema=False)
 def robots_txt():
-    return PlainTextResponse("User-agent: *\nAllow: /\nDisallow: /e/\n")
+    # Do not Disallow /e/: VK/Telegram/etc. need to fetch event pages for Open Graph.
+    # Privacy for search engines is handled via noindex on event templates.
+    return PlainTextResponse("User-agent: *\nAllow: /\n")

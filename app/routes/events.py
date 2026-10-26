@@ -125,7 +125,7 @@ def render_event_page(
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
-        "og_image_url": f"{base_url}/e/{event.slug}/og.png",
+        "og_image_url": f"{base_url}/og/{event.slug}.png",
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
@@ -178,9 +178,7 @@ def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
     return render_event_page(request, db, event)
 
 
-@router.get("/e/{slug}/og.png")
-def event_og_image(slug: str, db: Session = Depends(get_db)):
-    event = _get_event_or_404(db, slug)
+def _og_image_response(event) -> Response:
     png = render_event_og_png(event.name)
     return Response(
         content=png,
@@ -189,6 +187,19 @@ def event_og_image(slug: str, db: Session = Depends(get_db)):
             "Cache-Control": "public, max-age=3600",
         },
     )
+
+
+@router.api_route("/og/{slug}.png", methods=["GET", "HEAD"])
+def event_og_image(slug: str, db: Session = Depends(get_db)):
+    # Outside /e/ so social crawlers are not blocked if robots ever restricts events again.
+    event = _get_event_or_404(db, slug)
+    return _og_image_response(event)
+
+
+@router.api_route("/e/{slug}/og.png", methods=["GET", "HEAD"], include_in_schema=False)
+def event_og_image_legacy(slug: str, db: Session = Depends(get_db)):
+    event = _get_event_or_404(db, slug)
+    return _og_image_response(event)
 
 
 @router.get("/e/{slug}/results")
