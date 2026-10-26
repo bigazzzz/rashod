@@ -40,6 +40,33 @@ def _get_event_or_404(db: Session, slug: str):
     return event
 
 
+DESCRIPTION_CHIPS = (
+    "продукты",
+    "топливо",
+    "такси",
+    "жильё",
+    "бар",
+    "алкоголь",
+    "кафе",
+    "билеты",
+    "аптека",
+    "прочее",
+)
+
+AMOUNT_CHIPS = ("500", "1000", "1500", "2500", "000")
+
+
+def _unique_payer_names(expenses) -> list[str]:
+    seen: set[str] = set()
+    names: list[str] = []
+    for expense in expenses:
+        name = expense.payer_name
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+    return names
+
+
 def render_event_page(
     request: Request,
     db: Session,
@@ -55,6 +82,9 @@ def render_event_page(
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
+        "known_names": _unique_payer_names(expenses),
+        "amount_chips": AMOUNT_CHIPS,
+        "description_chips": DESCRIPTION_CHIPS,
     }
     if error:
         context["error"] = error

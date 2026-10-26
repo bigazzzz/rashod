@@ -19,7 +19,46 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Версия и список обновлений на главной" in response.text
+    assert "Плашки быстрой подстановки" in response.text
+
+
+def test_event_page_shows_amount_and_description_chips(client):
+    slug = create_event(client, name="Плашки")
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert 'data-chip-target="amount"' in response.text
+    assert 'data-chip-value="500"' in response.text
+    assert 'data-chip-value="000"' in response.text
+    assert 'data-chip-mode="append"' in response.text
+    assert 'data-chip-target="description"' in response.text
+    assert 'data-chip-value="продукты"' in response.text
+    assert 'data-chip-value="прочее"' in response.text
+    assert 'data-chip-target="payer_name"' not in response.text
+
+
+def test_event_page_shows_known_name_chips(client):
+    slug = create_event(client, name="Имена")
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Алиса", "description": "Еда", "amount": "100"},
+        follow_redirects=False,
+    )
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Алиса", "description": "Ещё", "amount": "50"},
+        follow_redirects=False,
+    )
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Боб", "description": "", "amount": "0"},
+        follow_redirects=False,
+    )
+
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert 'data-chip-target="payer_name"' in response.text
+    assert response.text.count('data-chip-value="Алиса"') == 1
+    assert 'data-chip-value="Боб"' in response.text
 
 
 def test_full_flow_totals_and_settlement(client):

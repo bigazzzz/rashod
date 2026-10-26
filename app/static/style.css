@@ -264,6 +264,40 @@ ul li {
   color: var(--card-text-dim);
 }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.chip {
+  width: auto;
+  min-height: 36px;
+  margin: 0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--card-text);
+  background: rgba(248, 236, 217, 0.08);
+  border: 1px solid rgba(240, 184, 78, 0.35);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.chip:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--gold);
+  background: rgba(240, 184, 78, 0.16);
+}
+
+.chip:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240, 184, 78, 0.25);
+}
+
 .changelog {
   margin-top: 2rem;
   padding-top: 1.25rem;

@@ -18,13 +18,35 @@
   <form method="post" action="/e/{{ event.slug }}/expenses">
     <label for="payer_name">Ваше имя</label>
     <input type="text" id="payer_name" name="payer_name" placeholder="Имя" autocomplete="name" required>
+    {% if known_names %}
+      <div class="chips" data-chip-target="payer_name" data-chip-mode="replace" role="group" aria-label="Известные имена">
+        {% for name in known_names %}
+          <button type="button" class="chip" data-chip-value="{{ name }}">{{ name }}</button>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     <label for="amount">Сумма</label>
     <input type="text" id="amount" name="amount" placeholder="1000.00" inputmode="decimal" required>
+    <div class="chips" data-chip-target="amount" role="group" aria-label="Быстрая сумма">
+      {% for chip in amount_chips %}
+        <button
+          type="button"
+          class="chip"
+          data-chip-value="{{ chip }}"
+          data-chip-mode="{% if chip == '000' %}append{% else %}replace{% endif %}"
+        >{{ chip }}</button>
+      {% endfor %}
+    </div>
     <p class="hint">0 — добавить участника без трат (он всё равно войдёт в дележ).</p>
 
     <label for="description">На что потрачено (необязательно)</label>
     <input type="text" id="description" name="description" placeholder="Продукты, бензин...">
+    <div class="chips" data-chip-target="description" data-chip-mode="replace" role="group" aria-label="Категории трат">
+      {% for chip in description_chips %}
+        <button type="button" class="chip" data-chip-value="{{ chip }}">{{ chip }}</button>
+      {% endfor %}
+    </div>
 
     <button type="submit">Добавить трату</button>
   </form>
@@ -104,6 +126,30 @@
         setTimeout(function () {
           shareBtn.textContent = original;
         }, 1500);
+      });
+
+      document.querySelectorAll(".chips").forEach(function (group) {
+        const targetId = group.getAttribute("data-chip-target");
+        const groupMode = group.getAttribute("data-chip-mode") || "replace";
+        const input = document.getElementById(targetId);
+        if (!input) {
+          return;
+        }
+
+        group.addEventListener("click", function (event) {
+          const chip = event.target.closest(".chip");
+          if (!chip || !group.contains(chip)) {
+            return;
+          }
+          const value = chip.getAttribute("data-chip-value") || "";
+          const mode = chip.getAttribute("data-chip-mode") || groupMode;
+          if (mode === "append") {
+            input.value = (input.value || "") + value;
+          } else {
+            input.value = value;
+          }
+          input.focus();
+        });
       });
     })();
   </script>
