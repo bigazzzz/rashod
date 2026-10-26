@@ -14,6 +14,35 @@
   {% set share_qr_hint = "Отсканируйте, чтобы открыть результаты" %}
   {% include "_share.html" %}
 
+  <h2>Кто кому должен</h2>
+  {% if transfers %}
+    <ul>
+      {% for t in transfers %}
+        <li>{{ t.from_person }} → {{ t.to_person }}: {{ "%.2f"|format(t.amount) }} ₽</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Все квиты, переводов не требуется.</p>
+  {% endif %}
+
+  <h2>Кто сколько потратил</h2>
+  {% if totals %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Имя</th><th>Потрачено</th></tr>
+        </thead>
+        <tbody>
+          {% for person, amount in totals.items() %}
+            <tr><td>{{ person }}</td><td>{{ "%.2f"|format(amount) }} ₽</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>Трат пока нет.</p>
+  {% endif %}
+
   <h2>Внесённые траты</h2>
   {% if expenses %}
     <div class="table-scroll">
@@ -43,36 +72,9 @@
     <p>Пока никто ничего не добавил.</p>
   {% endif %}
 
-  <p><a class="export-link" href="/r/{{ event.slug }}.csv">Скачать CSV</a></p>
-
-  <h2>Кто сколько потратил</h2>
-  {% if totals %}
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Имя</th><th>Потрачено</th></tr>
-        </thead>
-        <tbody>
-          {% for person, amount in totals.items() %}
-            <tr><td>{{ person }}</td><td>{{ "%.2f"|format(amount) }} ₽</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p>Трат пока нет.</p>
-  {% endif %}
-
-  <h2>Кто кому должен</h2>
-  {% if transfers %}
-    <ul>
-      {% for t in transfers %}
-        <li>{{ t.from_person }} → {{ t.to_person }}: {{ "%.2f"|format(t.amount) }} ₽</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Все квиты, переводов не требуется.</p>
-  {% endif %}
+  <p class="action-row">
+    <a class="btn-export" href="/r/{{ event.slug }}.csv">Скачать файл</a>
+  </p>
 
   <p><a href="/e/{{ event.slug }}">← Назад к событию</a></p>
 

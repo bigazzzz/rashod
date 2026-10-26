@@ -1,8 +1,10 @@
 import csv
 import io
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
@@ -234,19 +236,26 @@ def _results_context(request: Request, db: Session, event) -> dict:
     }
 
 
-def _results_csv_response(event, expenses, transfers) -> Response:
+def _csv_filename_for_event(event) -> tuple[str, str]:
+    """Return (ascii_fallback, utf8_filename) for Content-Disposition."""
+    raw = (event.name or "событие").strip() or "событие"
+    safe = re.sub(r'[\\/:*?"<>|\r\n]+', "-", raw).strip(" .") or "событие"
+    utf8_name = f"porovnu.su-{safe}.csv"
+    ascii_name = f"porovnu.su-{event.slug}.csv"
+    return ascii_name, utf8_name
+
+
+def _format_expense_when(expense) -> str:
+    created = expense.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return created.strftime("%d.%m.%Y %H:%M")
+
+
+def _results_csv_response(event, expenses, totals, transfers) -> Response:
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Кто", "На что", "Сумма"])
-    for expense in expenses:
-        writer.writerow(
-            [
-                expense.payer_name,
-                expense.description or "",
-                f"{expense.amount:.2f}",
-            ]
-        )
-    writer.writerow([])
+
     writer.writerow(["Кто", "Кому", "Сумма"])
     for transfer in transfers:
         writer.writerow(
@@ -256,13 +265,33 @@ def _results_csv_response(event, expenses, transfers) -> Response:
                 f"{transfer.amount:.2f}",
             ]
         )
+    writer.writerow([])
+    writer.writerow(["Кто", "Потрачено"])
+    for person, amount in totals.items():
+        writer.writerow([person, f"{amount:.2f}"])
+    writer.writerow([])
+    writer.writerow(["Кто", "На что", "Сумма", "Когда"])
+    for expense in expenses:
+        writer.writerow(
+            [
+                expense.payer_name,
+                "" if expense.amount == 0 else (expense.description or ""),
+                f"{expense.amount:.2f}",
+                _format_expense_when(expense),
+            ]
+        )
+
     # UTF-8 BOM so Excel on Windows opens Cyrillic correctly
     payload = ("\ufeff" + buf.getvalue()).encode("utf-8")
-    filename = f"porovnu-{event.slug}.csv"
+    ascii_name, utf8_name = _csv_filename_for_event(event)
+    disposition = (
+        f"attachment; filename=\"{ascii_name}\"; "
+        f"filename*=UTF-8''{quote(utf8_name)}"
+    )
     return Response(
         content=payload,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": disposition},
     )
 
 
@@ -271,7 +300,9 @@ def results_csv(request: Request, slug: str, db: Session = Depends(get_db)):
     # Registered before /r/{slug} so ".csv" is not swallowed by the slug param.
     event = _get_event_or_404(db, slug)
     ctx = _results_context(request, db, event)
-    return _results_csv_response(event, ctx["expenses"], ctx["transfers"])
+    return _results_csv_response(
+        event, ctx["expenses"], ctx["totals"], ctx["transfers"]
+    )
 
 
 @router.get("/r/{slug}")

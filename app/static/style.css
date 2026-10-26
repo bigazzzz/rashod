@@ -430,11 +430,45 @@ ul li {
   }
 }
 
-.export-link {
-  display: inline-block;
-  margin: 0 0 1.25rem;
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+a.btn-export,
+a.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+a.btn-export {
+  color: #ffe0c2;
+  background: transparent;
+  border: 1px solid rgba(255, 138, 61, 0.65);
+}
+
+a.btn-export:hover {
+  background: rgba(217, 122, 77, 0.22);
+}
+
+a.btn-secondary {
   color: var(--gold);
-  font-weight: 600;
+  background: transparent;
+  border: 1px solid rgba(240, 184, 78, 0.55);
+}
+
+a.btn-secondary:hover {
+  background: rgba(240, 184, 78, 0.14);
 }
 
 .about-nav {

@@ -274,6 +274,19 @@ def test_full_flow_totals_and_settlement(client):
     assert csv_resp.content.startswith(b"\xef\xbb\xbf")
     assert b"Alice" in csv_resp.content
     assert b"Bob" in csv_resp.content
+    assert "filename*=UTF-8''" in csv_resp.headers["content-disposition"]
+    assert "porovnu.su-" in csv_resp.headers["content-disposition"]
+    body = csv_resp.content.decode("utf-8-sig")
+    assert "Кто,Потрачено" in body
+    assert body.index("Кто,Кому,Сумма") < body.index("Кто,Потрачено")
+    assert body.index("Кто,Потрачено") < body.index("Кто,На что,Сумма,Когда")
+
+    page = client.get(f"/r/{slug}")
+    assert "Скачать файл" in page.text
+    assert 'class="btn-export"' in page.text
+    # settlement block comes before expense log
+    assert page.text.index("Кто кому должен") < page.text.index("Кто сколько потратил")
+    assert page.text.index("Кто сколько потратил") < page.text.index("Внесённые траты")
 
 
 def test_negative_amount_rejected(client):
