@@ -4,6 +4,10 @@
 {% block hero_class %} hero--compact{% endblock %}
 {% block content %}
   <h1>{{ event.name }}</h1>
+  <p class="hint expires-hint">
+    Данные будут удалены после
+    <time datetime="{{ expires_at.strftime('%Y-%m-%d') }}">{{ expires_at.strftime('%d.%m.%Y') }}</time>
+  </p>
   <p class="hint">Отправьте эту ссылку друзьям, чтобы они могли добавить свои траты.</p>
 
   <div class="share-row">

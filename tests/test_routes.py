@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Исправлен QR" in response.text
+    assert "Дата удаления события" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -69,6 +69,29 @@ def test_event_page_shows_frequent_description_chips(client):
     assert 'class="chip chip--frequent" data-chip-value="сувениры"' in response.text
     assert 'data-chip-value="разовое"' not in response.text
     assert response.text.count('data-chip-value="продукты"') == 1
+
+
+def test_event_page_shows_expiry_date(client):
+    from datetime import timedelta
+
+    from app.cleanup import RETENTION_DAYS
+
+    slug = create_event(client, name="Срок хранения")
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert "Данные будут удалены после" in response.text
+    assert 'class="hint expires-hint"' in response.text
+
+    from app import crud
+    from app.db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        event = crud.get_event_by_slug(db, slug)
+        expected = (event.created_at + timedelta(days=RETENTION_DAYS)).strftime("%d.%m.%Y")
+    finally:
+        db.close()
+    assert expected in response.text
 
 
 def test_event_page_has_qr_controls(client):

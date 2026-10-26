@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -7,6 +8,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app import crud
+from app.cleanup import RETENTION_DAYS
 from app.db import get_db
 from app.metrics import events_created_total
 from app.rate_limit import limiter
@@ -100,6 +102,13 @@ def _frequent_descriptions(expenses, *, min_count: int = 2) -> list[str]:
     return [text for text in repeated if text not in _DEFAULT_DESCRIPTION_SET]
 
 
+def _event_expires_at(event) -> datetime:
+    created = event.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return created + timedelta(days=RETENTION_DAYS)
+
+
 def render_event_page(
     request: Request,
     db: Session,
@@ -119,6 +128,7 @@ def render_event_page(
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
         "frequent_description_chips": _frequent_descriptions(expenses),
+        "expires_at": _event_expires_at(event),
     }
     if error:
         context["error"] = error

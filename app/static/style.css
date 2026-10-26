@@ -322,6 +322,17 @@ ul li {
   color: var(--card-text-dim);
 }
 
+.expires-hint {
+  margin-top: -0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.expires-hint time {
+  color: var(--gold);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
