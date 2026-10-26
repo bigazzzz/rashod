@@ -122,6 +122,12 @@ form {
 }
 
 #qr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  padding: 0.55rem;
   background: transparent;
   color: var(--gold);
   border: 1px solid rgba(240, 184, 78, 0.45);
@@ -138,6 +144,10 @@ form {
   background: rgba(240, 184, 78, 0.18);
 }
 
+.qr-icon {
+  display: block;
+}
+
 .qr-panel {
   margin: 0 0 1.5rem;
   padding: 1rem;
@@ -147,12 +157,25 @@ form {
   border-radius: 12px;
 }
 
-.qr-panel canvas {
-  display: block;
-  margin: 0 auto 0.75rem;
+.qr-code {
+  display: inline-block;
+  padding: 0.5rem;
+  background: #f8ecd9;
   border-radius: 8px;
+  line-height: 0;
+}
+
+.qr-code img,
+.qr-code canvas {
+  display: block;
   max-width: 100%;
   height: auto;
+}
+
+@media (max-width: 480px) {
+  #qr-btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {

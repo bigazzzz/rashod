@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "QR-код рядом с кнопкой" in response.text
+    assert "Исправлен QR" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -77,9 +77,11 @@ def test_event_page_has_qr_controls(client):
     assert response.status_code == 200
     assert 'id="qr-btn"' in response.text
     assert 'id="qr-panel"' in response.text
-    assert 'id="qr-canvas"' in response.text
+    assert 'id="qr-code"' in response.text
+    assert 'aria-label="Показать QR-код"' in response.text
     assert 'data-event-name="QR тест"' in response.text
-    assert "qrcode@1.5.4" in response.text
+    assert "/static/qrcode.min.js" in response.text
+    assert client.get("/static/qrcode.min.js").status_code == 200
 
 
 def test_empty_name_and_amount_get_defaults(client):
