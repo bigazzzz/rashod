@@ -19,7 +19,7 @@
     <div class="table-scroll">
       <table>
         <thead>
-          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th></th></tr>
+          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th>Когда (UTC)</th><th></th></tr>
         </thead>
         <tbody>
           {% for expense in expenses %}
@@ -27,6 +27,7 @@
               <td>{{ expense.payer_name }}</td>
               <td>{% if expense.amount == 0 %}—{% else %}{{ expense.description or "—" }}{% endif %}</td>
               <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
+              <td class="timestamp">{{ expense.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
               <td>
                 <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
                   <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>

@@ -29,21 +29,69 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
+def _split_oversized_word(
+    draw: ImageDraw.ImageDraw, word: str, font: ImageFont.ImageFont, max_width: int
+) -> list[str]:
+    """Break a single word that is wider than max_width into character chunks."""
+    if draw.textlength(word, font=font) <= max_width:
+        return [word]
+    chunks: list[str] = []
+    current = ""
+    for char in word:
+        candidate = current + char
+        if current and draw.textlength(candidate, font=font) > max_width:
+            chunks.append(current)
+            current = char
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return chunks or [""]
+
+
+def _wrap_text(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    font: ImageFont.ImageFont,
+    max_width: int,
+    *,
+    max_lines: int = 3,
+) -> list[str]:
     words = text.split()
     if not words:
         return [""]
+
+    # (token, glue_to_previous) — glue=True for mid-word character chunks (no space).
+    tokens: list[tuple[str, bool]] = []
+    for word in words:
+        parts = _split_oversized_word(draw, word, font, max_width)
+        for index, part in enumerate(parts):
+            tokens.append((part, index > 0))
+
     lines: list[str] = []
-    current = words[0]
-    for word in words[1:]:
-        candidate = f"{current} {word}"
+    current = ""
+    for token, glue in tokens:
+        if not current:
+            current = token
+            continue
+        candidate = current + token if glue else f"{current} {token}"
         if draw.textlength(candidate, font=font) <= max_width:
             current = candidate
         else:
             lines.append(current)
-            current = word
+            current = token
     lines.append(current)
-    return lines[:3]
+
+    if len(lines) <= max_lines:
+        return lines
+
+    kept = lines[:max_lines]
+    last = kept[-1]
+    ellipsis = "…"
+    while last and draw.textlength(last + ellipsis, font=font) > max_width:
+        last = last[:-1]
+    kept[-1] = (last.rstrip() + ellipsis) if last else ellipsis
+    return kept
 
 
 def _draw_text_with_shadow(
@@ -92,7 +140,7 @@ def _compose(event_name: str) -> Image.Image:
     _draw_text_with_shadow(draw, (88, 96), brand, brand_font, (240, 184, 78, 255))
     draw.rounded_rectangle((88, 142, 172, 146), radius=2, fill=(255, 138, 61, 230))
 
-    name = (event_name or "Мероприятие").strip() or "Мероприятие"
+    name = (event_name or "Событие").strip() or "Событие"
     lines = _wrap_text(draw, name, title_font, WIDTH - 220)
     y = 210
     for line in lines:

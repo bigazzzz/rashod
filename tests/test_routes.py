@@ -261,6 +261,7 @@ def test_full_flow_totals_and_settlement(client):
     results = client.get(f"/r/{slug}")
     assert results.status_code == 200
     assert "Внесённые траты" in results.text
+    assert "Когда (UTC)" in results.text
     assert "участник" in results.text
     assert "Alice" in results.text
     assert "Bob" in results.text
