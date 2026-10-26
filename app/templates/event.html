@@ -31,6 +31,8 @@
     <p class="error">{{ error }}</p>
   {% endif %}
 
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
   <form method="post" action="/e/{{ event.slug }}/expenses">
     <label for="payer_name">Ваше имя</label>
     <input type="text" id="payer_name" name="payer_name" placeholder="Имя или пусто → User001" autocomplete="name">
@@ -80,6 +82,22 @@
   <script src="/static/share.js"></script>
   <script>
     (function () {
+      const toast = document.getElementById("toast");
+      if (toast && /(?:\?|&)added=1(?:&|$)/.test(window.location.search)) {
+        toast.hidden = false;
+        toast.textContent = "Трата добавлена";
+        toast.classList.add("toast--visible");
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+        setTimeout(function () {
+          toast.classList.remove("toast--visible");
+          setTimeout(function () {
+            toast.hidden = true;
+          }, 280);
+        }, 2800);
+      }
+
       document.querySelectorAll(".chips").forEach(function (group) {
         const targetId = group.getAttribute("data-chip-target");
         const groupMode = group.getAttribute("data-chip-mode") || "replace";

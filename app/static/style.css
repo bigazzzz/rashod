@@ -338,6 +338,30 @@ ul li {
   border-left: 3px solid #ff6b6b;
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 40;
+  max-width: min(92vw, 360px);
+  padding: 0.85rem 1.15rem;
+  border-radius: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--navy-deep);
+  background: linear-gradient(120deg, var(--gold), var(--terracotta));
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, 120%);
+  opacity: 0;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+  pointer-events: none;
+}
+
+.toast--visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
 .hint {
   opacity: 0.85;
   font-size: 0.9rem;

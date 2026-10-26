@@ -165,6 +165,14 @@ def test_event_page_has_qr_controls(client):
     assert client.get("/static/qrcode.min.js").status_code == 200
 
 
+def test_event_page_has_expense_added_toast(client):
+    slug = create_event(client, name="Toast")
+    page = client.get(f"/e/{slug}")
+    assert 'id="toast"' in page.text
+    assert "Трата добавлена" in page.text
+    assert "added=1" in page.text
+
+
 def test_empty_name_and_amount_get_defaults(client):
     slug = create_event(client, name="Defaults")
     first = client.post(
@@ -173,6 +181,7 @@ def test_empty_name_and_amount_get_defaults(client):
         follow_redirects=False,
     )
     assert first.status_code == 303
+    assert first.headers["location"] == f"/e/{slug}?added=1"
 
     second = client.post(
         f"/e/{slug}/expenses",
@@ -180,6 +189,7 @@ def test_empty_name_and_amount_get_defaults(client):
         follow_redirects=False,
     )
     assert second.status_code == 303
+    assert second.headers["location"].endswith("?added=1")
 
     page = client.get(f"/e/{slug}")
     assert "User001" in page.text

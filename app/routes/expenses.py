@@ -64,7 +64,7 @@ def create_expense(
 
     crud.add_expense(db, event, data.payer_name, data.description, data.amount)
     expenses_added_total.inc()
-    return RedirectResponse(url=f"/e/{event.slug}", status_code=303)
+    return RedirectResponse(url=f"/e/{event.slug}?added=1", status_code=303)
 
 
 @router.post("/e/{slug}/expenses/{expense_id}/delete")
