@@ -173,6 +173,15 @@ def test_event_page_has_expense_added_toast(client):
     assert "added=1" in page.text
 
 
+def test_event_page_hero_uses_og_image(client):
+    slug = create_event(client, name="Hero OG")
+    page = client.get(f"/e/{slug}")
+    assert f'src="/og/{slug}.jpg"' in page.text
+    assert "/static/beach-night.svg" not in page.text
+    results = client.get(f"/r/{slug}")
+    assert f'src="/og/{slug}.jpg"' in results.text
+
+
 def test_empty_name_and_amount_get_defaults(client):
     slug = create_event(client, name="Defaults")
     first = client.post(

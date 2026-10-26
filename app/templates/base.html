@@ -19,7 +19,12 @@
 </head>
 <body>
   <main class="container">
-    <img class="hero{% block hero_class %}{% endblock %}" src="/static/beach-night.svg" alt="Ночной пляж: яркая луна, костёр и гротескные силуэты друзей с гитарой у палаток">
+    <img
+      class="hero{% block hero_class %}{% endblock %}"
+      src="{% block hero_src %}/static/beach-night.svg{% endblock %}"
+      alt="{% block hero_alt %}Ночной пляж: яркая луна, костёр и гротескные силуэты друзей с гитарой у палаток{% endblock %}"
+      {% block hero_attrs %}{% endblock %}
+    >
     {% block content %}{% endblock %}
   </main>
 </body>

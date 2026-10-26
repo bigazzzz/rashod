@@ -15,6 +15,9 @@
 {% endblock %}
 {% block twitter_card %}summary_large_image{% endblock %}
 {% block hero_class %} hero--compact{% endblock %}
+{% block hero_src %}/og/{{ event.slug }}.jpg{% endblock %}
+{% block hero_alt %}Превью события «{{ event.name }}»{% endblock %}
+{% block hero_attrs %}width="1200" height="630"{% endblock %}
 {% block content %}
   <h1>{{ event.name }}</h1>
   <p class="hint expires-hint">
