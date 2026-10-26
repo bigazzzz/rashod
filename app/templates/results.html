@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Результаты — {{ event.name }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
+{% block og_title %}Результаты · {{ event.name }}{% endblock %}
+{% block og_description %}Итоги события «{{ event.name }}»: кто сколько потратил и кто кому должен — Поровну.{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ share_url }}">{% endblock %}
+{% block twitter_card %}summary{% endblock %}
 {% block hero_class %} hero--compact{% endblock %}
 {% block content %}
   <h1>Результаты: {{ event.name }}</h1>
+
+  <p class="hint">Отправьте ссылку на результаты друзьям.</p>
+  {% set share_title = "Результаты · " ~ event.name %}
+  {% set share_qr_hint = "Отсканируйте, чтобы открыть результаты" %}
+  {% include "_share.html" %}
 
   <h2>Внесённые траты</h2>
   {% if expenses %}
@@ -16,7 +25,7 @@
           {% for expense in expenses %}
             <tr>
               <td>{{ expense.payer_name }}</td>
-              <td>{{ expense.description or "—" }}</td>
+              <td>{% if expense.amount == 0 %}—{% else %}{{ expense.description or "—" }}{% endif %}</td>
               <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
               <td>
                 <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
@@ -33,7 +42,7 @@
     <p>Пока никто ничего не добавил.</p>
   {% endif %}
 
-  <p><a class="export-link" href="/e/{{ event.slug }}/results.csv">Скачать CSV</a></p>
+  <p><a class="export-link" href="/r/{{ event.slug }}.csv">Скачать CSV</a></p>
 
   <h2>Кто сколько потратил</h2>
   {% if totals %}
@@ -65,4 +74,7 @@
   {% endif %}
 
   <p><a href="/e/{{ event.slug }}">← Назад к событию</a></p>
+
+  <script src="/static/qrcode.min.js"></script>
+  <script src="/static/share.js"></script>
 {% endblock %}

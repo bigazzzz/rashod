@@ -211,12 +211,14 @@ def _results_context(request: Request, db: Session, event) -> dict:
     totals = compute_totals([(e.payer_name, e.amount) for e in expenses])
     balances = compute_balances(totals)
     transfers = settle_debts(balances)
+    base_url = PUBLIC_BASE_URL.rstrip("/") if PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
     return {
         "event": event,
         "expenses": expenses,
         "total": total,
         "totals": totals,
         "transfers": transfers,
+        "share_url": f"{base_url}/r/{event.slug}",
     }
 
 
@@ -252,7 +254,15 @@ def _results_csv_response(event, expenses, transfers) -> Response:
     )
 
 
-@router.get("/e/{slug}/results")
+@router.get("/r/{slug}.csv")
+def results_csv(request: Request, slug: str, db: Session = Depends(get_db)):
+    # Registered before /r/{slug} so ".csv" is not swallowed by the slug param.
+    event = _get_event_or_404(db, slug)
+    ctx = _results_context(request, db, event)
+    return _results_csv_response(event, ctx["expenses"], ctx["transfers"])
+
+
+@router.get("/r/{slug}")
 def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
     return templates.TemplateResponse(
@@ -262,8 +272,11 @@ def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/e/{slug}/results.csv")
-def results_csv(slug: str, db: Session = Depends(get_db)):
-    event = _get_event_or_404(db, slug)
-    ctx = _results_context(None, db, event)
-    return _results_csv_response(event, ctx["expenses"], ctx["transfers"])
+@router.get("/e/{slug}/results.csv", include_in_schema=False)
+def results_csv_legacy(slug: str):
+    return RedirectResponse(url=f"/r/{slug}.csv", status_code=302)
+
+
+@router.get("/e/{slug}/results", include_in_schema=False)
+def results_page_legacy(slug: str):
+    return RedirectResponse(url=f"/r/{slug}", status_code=302)

@@ -46,8 +46,11 @@ def create_expense(
     error = None
     try:
         parsed_amount = Decimal(amount_raw.replace(",", "."))
+        resolved_description = "" if parsed_amount == 0 else description
         data = ExpenseCreate(
-            payer_name=resolved_name, description=description, amount=parsed_amount
+            payer_name=resolved_name,
+            description=resolved_description,
+            amount=parsed_amount,
         )
     except (InvalidOperation, ValidationError) as exc:
         error = (
@@ -69,4 +72,4 @@ def create_expense(
 def delete_expense(request: Request, slug: str, expense_id: int, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
     crud.delete_expense(db, event, expense_id)
-    return RedirectResponse(url=f"/e/{event.slug}/results", status_code=303)
+    return RedirectResponse(url=f"/r/{event.slug}", status_code=303)

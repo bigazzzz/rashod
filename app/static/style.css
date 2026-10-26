@@ -105,6 +105,7 @@ form {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  align-items: stretch;
 }
 
 .share-row input {
@@ -114,14 +115,22 @@ form {
   color: var(--card-text-dim);
 }
 
-.share-row button {
+.share-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.share-actions button {
   flex-shrink: 0;
   width: auto;
   margin-top: 0;
   padding: 0.6rem 1rem;
 }
 
-#qr-btn {
+#qr-btn,
+#copy-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -134,9 +143,11 @@ form {
   box-shadow: none;
 }
 
-#qr-btn:hover {
+#qr-btn:hover,
+#copy-btn:hover {
   background: rgba(240, 184, 78, 0.12);
   box-shadow: none;
+  transform: none;
 }
 
 #qr-btn[aria-expanded="true"] {
@@ -144,7 +155,8 @@ form {
   background: rgba(240, 184, 78, 0.18);
 }
 
-.qr-icon {
+.qr-icon,
+.copy-icon {
   display: block;
 }
 
@@ -173,18 +185,22 @@ form {
 }
 
 @media (max-width: 480px) {
-  #qr-btn {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
   .share-row {
     flex-direction: column;
   }
 
-  .share-row button {
+  .share-actions {
     width: 100%;
+  }
+
+  .share-actions #share-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  #qr-btn,
+  #copy-btn {
+    width: 44px;
   }
 }
 

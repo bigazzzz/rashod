@@ -25,7 +25,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Превью в VK" in response.text
+    assert "Копирование ссылки" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -171,7 +171,7 @@ def test_empty_name_and_amount_get_defaults(client):
     page = client.get(f"/e/{slug}")
     assert "User001" in page.text
     assert "User002" in page.text
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert results.text.count("участник") >= 2
 
 
@@ -246,7 +246,7 @@ def test_full_flow_totals_and_settlement(client):
     assert "участник без трат" in event_page.text
     assert "Внесённые траты" not in event_page.text
 
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert results.status_code == 200
     assert "Внесённые траты" in results.text
     assert "участник" in results.text
@@ -255,7 +255,7 @@ def test_full_flow_totals_and_settlement(client):
     assert "Carol" in results.text
     # Bob paid 0, so he owes his share
     assert "Bob → Alice" in results.text
-    csv_resp = client.get(f"/e/{slug}/results.csv")
+    csv_resp = client.get(f"/r/{slug}.csv")
     assert csv_resp.status_code == 200
     assert csv_resp.headers["content-type"].startswith("text/csv")
     assert csv_resp.content.startswith(b"\xef\xbb\xbf")
@@ -278,7 +278,7 @@ def test_unknown_slug_returns_404(client):
     response = client.get("/e/does-not-exist")
     assert response.status_code == 404
 
-    response = client.get("/e/does-not-exist/results")
+    response = client.get("/r/does-not-exist")
     assert response.status_code == 404
 
 
@@ -289,7 +289,7 @@ def test_single_person_no_transfers_needed(client):
         data={"payer_name": "Alice", "description": "Всё", "amount": "50"},
         follow_redirects=False,
     )
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert "Все квиты" in results.text
 
 
@@ -302,7 +302,7 @@ def test_expense_without_description_is_accepted(client):
     )
     assert response.status_code == 303
 
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert "Alice" in results.text
     assert "—" in results.text
 
@@ -319,7 +319,7 @@ def test_results_page_shows_total(client):
         data={"payer_name": "Bob", "description": "Вода", "amount": "10"},
         follow_redirects=False,
     )
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert "Всего потрачено" in results.text
     assert "50.00" in results.text
 
@@ -351,9 +351,9 @@ def test_delete_expense_removes_it(client):
         f"/e/{slug}/expenses/{expense_id}/delete", follow_redirects=False
     )
     assert response.status_code == 303
-    assert response.headers["location"] == f"/e/{slug}/results"
+    assert response.headers["location"] == f"/r/{slug}"
 
-    results = client.get(f"/e/{slug}/results")
+    results = client.get(f"/r/{slug}")
     assert "Alice" not in results.text
     assert "Пока никто ничего не добавил" in results.text
 
@@ -372,7 +372,7 @@ def test_delete_expense_from_other_event_is_ignored(client):
     # trying to delete event A's expense through event B's URL must not remove it
     client.post(f"/e/{slug_b}/expenses/{expense_id}/delete", follow_redirects=False)
 
-    results = client.get(f"/e/{slug_a}/results")
+    results = client.get(f"/r/{slug_a}")
     assert "Alice" in results.text
 
 
@@ -389,3 +389,42 @@ def test_create_event_rate_limited_after_threshold(client):
         for i in range(11)
     ]
     assert responses[-1].status_code == 429
+
+
+def test_results_live_at_short_path_with_legacy_redirect(client):
+    slug = create_event(client, name="Short results")
+    page = client.get(f"/r/{slug}")
+    assert page.status_code == 200
+    assert "Результаты" in page.text
+    assert 'id="copy-btn"' in page.text
+    assert f'value="http://testserver/r/{slug}"' in page.text
+    assert "/static/share.js" in page.text
+
+    legacy = client.get(f"/e/{slug}/results", follow_redirects=False)
+    assert legacy.status_code == 302
+    assert legacy.headers["location"] == f"/r/{slug}"
+
+    legacy_csv = client.get(f"/e/{slug}/results.csv", follow_redirects=False)
+    assert legacy_csv.status_code == 302
+    assert legacy_csv.headers["location"] == f"/r/{slug}.csv"
+
+
+def test_zero_amount_ignores_description(client):
+    slug = create_event(client, name="Zero desc")
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Алиса", "description": "не должно сохраниться", "amount": "0"},
+        follow_redirects=False,
+    )
+    results = client.get(f"/r/{slug}")
+    assert "Алиса" in results.text
+    assert "не должно сохраниться" not in results.text
+    assert "участник" in results.text
+
+
+def test_event_page_has_copy_button(client):
+    slug = create_event(client, name="Copy")
+    response = client.get(f"/e/{slug}")
+    assert 'id="copy-btn"' in response.text
+    assert 'aria-label="Копировать ссылку"' in response.text
+    assert "/static/share.js" in response.text

@@ -23,19 +23,9 @@
   </p>
   <p class="hint">Отправьте эту ссылку друзьям, чтобы они могли добавить свои траты.</p>
 
-  <div class="share-row">
-    <input type="text" id="share-link" value="{{ share_url }}" readonly onclick="this.select()">
-    <button type="button" id="share-btn" data-event-name="{{ event.name }}">Поделиться</button>
-    <button type="button" id="qr-btn" aria-expanded="false" aria-controls="qr-panel" aria-label="Показать QR-код" title="QR-код">
-      <svg class="qr-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-        <path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm12.5-2h1.5v1.5H17.5V11zm-2 2H17v1.5h-1.5V13zm2 2H19v1.5h-1.5V15zm2-2H21v1.5h-1.5V13zm-4 4H17V21h-1.5v-2.5H13V17h2.5v-1.5H17V17zm4 0H21V21h-3.5v-1.5H19V17h1.5v-1.5H21V17z"/>
-      </svg>
-    </button>
-  </div>
-  <div id="qr-panel" class="qr-panel" hidden>
-    <div id="qr-code" class="qr-code" role="img" aria-label="QR-код ссылки на событие"></div>
-    <p class="hint">Отсканируйте, чтобы открыть ссылку на событие</p>
-  </div>
+  {% set share_title = event.name %}
+  {% set share_qr_hint = "Отсканируйте, чтобы открыть ссылку на событие" %}
+  {% include "_share.html" %}
 
   {% if error %}
     <p class="error">{{ error }}</p>
@@ -81,104 +71,12 @@
     <button type="submit">Добавить трату</button>
   </form>
 
-  <p><a href="/e/{{ event.slug }}/results">Посмотреть результаты →</a></p>
+  <p><a href="/r/{{ event.slug }}">Посмотреть результаты →</a></p>
 
   <script src="/static/qrcode.min.js"></script>
+  <script src="/static/share.js"></script>
   <script>
     (function () {
-      const shareBtn = document.getElementById("share-btn");
-      const shareLink = document.getElementById("share-link");
-      const qrBtn = document.getElementById("qr-btn");
-      const qrPanel = document.getElementById("qr-panel");
-      const qrCodeEl = document.getElementById("qr-code");
-      let qrInstance = null;
-
-      shareBtn.addEventListener("click", async function () {
-        const url = shareLink.value;
-        const title = shareBtn.getAttribute("data-event-name") || "Поровну";
-
-        if (navigator.share) {
-          try {
-            await navigator.share({ title: title, text: title, url: url });
-            return;
-          } catch (err) {
-            if (err && err.name === "AbortError") {
-              return; // пользователь сам закрыл окно шеринга
-            }
-            // navigator.share есть, но не сработал (например, запрещено
-            // политикой браузера) — пробуем скопировать в буфер ниже
-          }
-        }
-
-        let copied = false;
-        try {
-          if (navigator.clipboard) {
-            await navigator.clipboard.writeText(url);
-            copied = true;
-          }
-        } catch (err) {
-          copied = false;
-        }
-
-        if (!copied) {
-          try {
-            shareLink.select();
-            copied = document.execCommand("copy");
-          } catch (err) {
-            copied = false;
-          }
-        }
-
-        const original = shareBtn.textContent;
-        shareBtn.textContent = copied ? "Скопировано!" : "Скопируйте вручную";
-        setTimeout(function () {
-          shareBtn.textContent = original;
-        }, 1500);
-      });
-
-      function closeQr() {
-        qrPanel.hidden = true;
-        qrBtn.setAttribute("aria-expanded", "false");
-      }
-
-      function openQr() {
-        if (typeof QRCode === "undefined") {
-          return;
-        }
-        if (!qrInstance) {
-          qrCodeEl.innerHTML = "";
-          qrInstance = new QRCode(qrCodeEl, {
-            text: shareLink.value,
-            width: 200,
-            height: 200,
-            colorDark: "#0a0816",
-            colorLight: "#f8ecd9",
-            correctLevel: QRCode.CorrectLevel.M,
-          });
-        }
-        qrPanel.hidden = false;
-        qrBtn.setAttribute("aria-expanded", "true");
-      }
-
-      qrBtn.addEventListener("click", function (event) {
-        event.stopPropagation();
-        if (qrPanel.hidden) {
-          openQr();
-        } else {
-          closeQr();
-        }
-      });
-
-      document.addEventListener("click", function (event) {
-        if (qrPanel.hidden) {
-          return;
-        }
-        if (qrPanel.contains(event.target) || qrBtn.contains(event.target)) {
-          return;
-        }
-        closeQr();
-      });
-
       document.querySelectorAll(".chips").forEach(function (group) {
         const targetId = group.getAttribute("data-chip-target");
         const groupMode = group.getAttribute("data-chip-mode") || "replace";
