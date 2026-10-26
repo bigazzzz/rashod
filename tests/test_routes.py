@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Расширенные плашки сумм" in response.text
+    assert "концерт" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -39,6 +39,7 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert 'data-chip-value="продукты"' in response.text
     assert 'data-chip-value="гид"' in response.text
     assert 'data-chip-value="экскурсия"' in response.text
+    assert 'data-chip-value="концерт"' in response.text
     assert 'data-chip-value="прочее"' in response.text
     assert 'data-chip-target="payer_name"' not in response.text
 
