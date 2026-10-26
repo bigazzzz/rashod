@@ -356,43 +356,70 @@ ul li {
   margin: 0.15rem 0 0.35rem;
 }
 
-button.chip {
+/* Higher specificity than bare `button` / `button:hover` so chips never
+   pick up the primary gold gradient — especially on touch (sticky :hover). */
+.chips > button.chip {
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: auto;
   min-height: 36px;
   margin: 0;
   padding: 0.35rem 0.7rem;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--card-text);
-  background: rgba(248, 236, 217, 0.08);
+  background-color: rgba(248, 236, 217, 0.08);
+  background-image: none;
   border: 1px solid rgba(240, 184, 78, 0.35);
   border-radius: 999px;
   box-shadow: none;
-}
-
-button.chip:hover {
   transform: none;
-  box-shadow: none;
-  border-color: var(--gold);
-  background: rgba(240, 184, 78, 0.16);
 }
 
-button.chip:focus-visible {
+.chips > button.chip:focus,
+.chips > button.chip:active {
   outline: none;
+  background-color: rgba(248, 236, 217, 0.08);
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.chips > button.chip:focus-visible {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(240, 184, 78, 0.25);
 }
 
-button.chip--frequent {
+.chips > button.chip--frequent {
   color: #ffe0c2;
-  background: rgba(217, 122, 77, 0.28);
+  background-color: rgba(217, 122, 77, 0.28);
+  background-image: none;
   border-style: solid;
   border-color: rgba(255, 138, 61, 0.55);
 }
 
-button.chip--frequent:hover {
-  background: rgba(217, 122, 77, 0.4);
-  border-color: var(--flame);
+.chips > button.chip--frequent:focus,
+.chips > button.chip--frequent:active {
+  background-color: rgba(217, 122, 77, 0.28);
+  background-image: none;
+}
+
+@media (hover: hover) {
+  .chips > button.chip:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--gold);
+    background-color: rgba(240, 184, 78, 0.16);
+    background-image: none;
+  }
+
+  .chips > button.chip--frequent:hover {
+    background-color: rgba(217, 122, 77, 0.4);
+    background-image: none;
+    border-color: var(--flame);
+  }
 }
 
 .export-link {

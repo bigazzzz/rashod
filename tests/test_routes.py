@@ -52,6 +52,12 @@ def test_event_page_shows_amount_and_description_chips(client):
     assert 'data-chip-value="прочее"' in response.text
     assert 'data-chip-target="payer_name"' not in response.text
 
+    css = client.get("/static/style.css")
+    assert css.status_code == 200
+    assert ".chips > button.chip" in css.text
+    assert "background-image: none" in css.text
+    assert "@media (hover: hover)" in css.text
+
 
 def test_event_page_shows_frequent_description_chips(client):
     slug = create_event(client, name="Частые")
