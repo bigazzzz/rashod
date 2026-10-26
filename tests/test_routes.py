@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Плашки быстрой подстановки" in response.text
+    assert "Расширенные плашки сумм" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -27,11 +27,18 @@ def test_event_page_shows_amount_and_description_chips(client):
     response = client.get(f"/e/{slug}")
     assert response.status_code == 200
     assert 'data-chip-target="amount"' in response.text
-    assert 'data-chip-value="500"' in response.text
     assert 'data-chip-value="000"' in response.text
+    assert 'data-chip-value="300"' in response.text
+    assert 'data-chip-value="5000"' in response.text
     assert 'data-chip-mode="append"' in response.text
+    # 000 is the first amount chip
+    amount_pos = response.text.find('data-chip-target="amount"')
+    first_chip = response.text.find("data-chip-value=", amount_pos)
+    assert response.text.startswith('data-chip-value="000"', first_chip)
     assert 'data-chip-target="description"' in response.text
     assert 'data-chip-value="продукты"' in response.text
+    assert 'data-chip-value="гид"' in response.text
+    assert 'data-chip-value="экскурсия"' in response.text
     assert 'data-chip-value="прочее"' in response.text
     assert 'data-chip-target="payer_name"' not in response.text
 
