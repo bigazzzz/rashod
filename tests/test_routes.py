@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Превью ссылки события" in response.text
+    assert "Красивое PNG-превью" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -75,11 +75,21 @@ def test_event_page_has_open_graph_preview(client):
     slug = create_event(client, name="Поход в горы")
     response = client.get(f"/e/{slug}")
     assert response.status_code == 200
-    assert 'property="og:title" content="Поход в горы — Поровну"' in response.text
-    assert "Добавьте свои траты в «Поход в горы»" in response.text
+    assert 'property="og:title" content="Поход в горы · Поровну"' in response.text
+    assert "Открой ссылку, добавь траты в «Поход в горы»" in response.text
     assert f'property="og:url" content="http://testserver/e/{slug}"' in response.text
-    assert 'property="og:image" content="http://testserver/static/beach-night.svg"' in response.text
+    assert f'property="og:image" content="http://testserver/e/{slug}/og.png"' in response.text
+    assert 'property="og:image:width" content="1200"' in response.text
     assert 'name="twitter:card" content="summary_large_image"' in response.text
+
+
+def test_event_og_image_is_png(client):
+    slug = create_event(client, name="Ужин у костра")
+    response = client.get(f"/e/{slug}/og.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert len(response.content) > 10_000
 
 
 def test_event_page_shows_expiry_date(client):

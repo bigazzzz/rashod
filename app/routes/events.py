@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from app import crud
 from app.cleanup import RETENTION_DAYS
 from app.db import get_db
 from app.metrics import events_created_total
+from app.og_image import render_event_og_png
 from app.rate_limit import limiter
 from app.schemas import EventCreate
 from app.settlement import compute_balances, compute_totals, settle_debts
@@ -124,7 +125,7 @@ def render_event_page(
         "expenses": expenses,
         "total": total,
         "share_url": f"{base_url}/e/{event.slug}",
-        "og_image_url": f"{base_url}/static/beach-night.svg",
+        "og_image_url": f"{base_url}/e/{event.slug}/og.png",
         "known_names": _unique_payer_names(expenses),
         "amount_chips": AMOUNT_CHIPS,
         "description_chips": DESCRIPTION_CHIPS,
@@ -175,6 +176,19 @@ def create_event(request: Request, name: str = Form(...), db: Session = Depends(
 def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
     return render_event_page(request, db, event)
+
+
+@router.get("/e/{slug}/og.png")
+def event_og_image(slug: str, db: Session = Depends(get_db)):
+    event = _get_event_or_404(db, slug)
+    png = render_event_og_png(event.name)
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
 
 
 @router.get("/e/{slug}/results")
