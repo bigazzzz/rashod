@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import logging
+import os
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
@@ -7,6 +11,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 WIDTH = 1200
 HEIGHT = 630
 BG_PATH = Path(__file__).parent / "static" / "og-bg.jpg"
+OG_IMAGE_DIR = Path(os.environ.get("OG_IMAGE_DIR", "/data/og"))
 
 _FONT_CANDIDATES = (
     Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
@@ -15,9 +20,11 @@ _FONT_CANDIDATES = (
     Path("/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"),
 )
 
+log = logging.getLogger("og_image")
+
 
 @lru_cache(maxsize=1)
-def _load_background() -> Image.Image:
+def _load_default_background() -> Image.Image:
     image = Image.open(BG_PATH).convert("RGB")
     return image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
 
@@ -61,7 +68,6 @@ def _wrap_text(
     if not words:
         return [""]
 
-    # (token, glue_to_previous) — glue=True for mid-word character chunks (no space).
     tokens: list[tuple[str, bool]] = []
     for word in words:
         parts = _split_oversized_word(draw, word, font, max_width)
@@ -108,25 +114,42 @@ def _draw_text_with_shadow(
     draw.text((x, y), text, font=font, fill=fill)
 
 
-@lru_cache(maxsize=256)
-def render_event_og_jpeg(event_name: str) -> bytes:
-    buf = BytesIO()
-    _compose(event_name).save(buf, format="JPEG", quality=85, optimize=True, progressive=True)
-    return buf.getvalue()
+def background_path_for(slug: str) -> Path | None:
+    path = OG_IMAGE_DIR / f"{slug}.jpg"
+    return path if path.is_file() else None
 
 
-def _compose(event_name: str) -> Image.Image:
-    base = _load_background().copy().convert("RGBA")
+def delete_background_for(slug: str) -> None:
+    path = OG_IMAGE_DIR / f"{slug}.jpg"
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as exc:
+        log.warning("Failed to delete OG background for %s: %s", slug, exc)
+
+
+def _load_background_image(path: Path | None) -> Image.Image:
+    if path is None:
+        return _load_default_background().copy()
+    try:
+        image = Image.open(path).convert("RGB")
+        return image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+    except OSError as exc:
+        log.warning("Bad OG background %s (%s); using default", path, exc)
+        return _load_default_background().copy()
+
+
+def compose_og(event_name: str, background: Image.Image) -> Image.Image:
+    base = background.convert("RGBA")
+    if base.size != (WIDTH, HEIGHT):
+        base = base.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    # Left-to-right vignette: keep the fire visible on the right, text readable on the left/center
     for x in range(WIDTH):
         t = x / (WIDTH - 1)
         alpha = int(150 * (1 - t) ** 1.35 + 55)
         draw.line([(x, 0), (x, HEIGHT)], fill=(6, 8, 18, alpha))
 
-    # Soft bottom fade
     for y in range(HEIGHT - 180, HEIGHT):
         t = (y - (HEIGHT - 180)) / 180
         alpha = int(90 * t)
@@ -158,3 +181,70 @@ def _compose(event_name: str) -> Image.Image:
 
     composed = Image.alpha_composite(base, overlay).convert("RGB")
     return composed.filter(ImageFilter.UnsharpMask(radius=1.1, percent=105, threshold=2))
+
+
+@lru_cache(maxsize=256)
+def _render_cached(slug: str, event_name: str, bg_mtime_ns: int) -> bytes:
+    path: Path | None = None
+    if bg_mtime_ns > 0:
+        candidate = OG_IMAGE_DIR / f"{slug}.jpg"
+        if candidate.is_file():
+            path = candidate
+    buf = BytesIO()
+    compose_og(event_name, _load_background_image(path)).save(
+        buf, format="JPEG", quality=85, optimize=True, progressive=True
+    )
+    return buf.getvalue()
+
+
+def render_event_og_jpeg(event_name: str, slug: str | None = None) -> bytes:
+    """Compose OG card. Optional slug picks AI background from OG_IMAGE_DIR."""
+    if not slug:
+        buf = BytesIO()
+        compose_og(event_name, _load_default_background().copy()).save(
+            buf, format="JPEG", quality=85, optimize=True, progressive=True
+        )
+        return buf.getvalue()
+
+    path = background_path_for(slug)
+    mtime_ns = path.stat().st_mtime_ns if path is not None else 0
+    return _render_cached(slug, event_name, mtime_ns)
+
+
+def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
+    """Resize/normalize Pollinations image and store as JPEG under OG_IMAGE_DIR."""
+    try:
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        image = image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+    except OSError as exc:
+        log.warning("Cannot decode generated background for %s: %s", slug, exc)
+        return None
+
+    OG_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    final_path = OG_IMAGE_DIR / f"{slug}.jpg"
+    tmp_path = OG_IMAGE_DIR / f".{slug}.jpg.tmp"
+    try:
+        image.save(tmp_path, format="JPEG", quality=88, optimize=True)
+        tmp_path.replace(final_path)
+    except OSError as exc:
+        log.warning("Cannot save OG background for %s: %s", slug, exc)
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+
+    _render_cached.cache_clear()
+    return final_path
+
+
+def generate_and_store_background(slug: str, event_name: str) -> None:
+    """Background job: fetch from Pollinations and persist, or no-op on failure."""
+    from app.pollinations import fetch_cartoon_background
+
+    raw = fetch_cartoon_background(event_name)
+    if not raw:
+        return
+    path = save_generated_background(slug, raw)
+    if path:
+        log.info("Stored Pollinations OG background for %s at %s", slug, path)

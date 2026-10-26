@@ -15,6 +15,9 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       TRUST_PROXY_HEADERS: "1" # Caddy is the only thing that can reach this container
       EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-365}
+      OG_IMAGE_DIR: /data/og
+      # Optional. Never commit a real key; leave empty for anonymous Pollinations.
+      POLLINATIONS_API_KEY: ${POLLINATIONS_API_KEY:-}
     volumes:
       - db_data:/data
     healthcheck:

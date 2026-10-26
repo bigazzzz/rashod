@@ -26,10 +26,17 @@ RETENTION_DAYS = parse_retention_days(os.environ.get("EVENT_RETENTION_DAYS", "36
 
 
 def cleanup_old_events() -> int:
+    from app.models import Event
+    from app.og_image import delete_background_for
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
     db = SessionLocal()
     try:
+        old_events = db.query(Event).filter(Event.created_at < cutoff).all()
+        slugs = [event.slug for event in old_events]
         deleted = crud.delete_events_older_than(db, cutoff)
+        for slug in slugs:
+            delete_background_for(slug)
         if deleted:
             events_deleted_total.inc(deleted)
             log.info("Cleaned up %d event(s) older than %d days", deleted, RETENTION_DAYS)

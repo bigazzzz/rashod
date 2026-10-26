@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ from app import crud
 from app.cleanup import RETENTION_DAYS
 from app.db import get_db
 from app.metrics import events_created_total
-from app.og_image import render_event_og_jpeg
+from app.og_image import generate_and_store_background, render_event_og_jpeg
 from app.rate_limit import limiter
 from app.schemas import EventCreate
 from app.settlement import compute_balances, compute_totals, settle_debts
@@ -164,7 +164,12 @@ def about_page(request: Request):
 
 @router.post("/events")
 @limiter.limit("10/minute")
-def create_event(request: Request, name: str = Form(...), db: Session = Depends(get_db)):
+def create_event(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
     try:
         data = EventCreate(name=name)
     except ValidationError as exc:
@@ -182,6 +187,7 @@ def create_event(request: Request, name: str = Form(...), db: Session = Depends(
 
     event = crud.create_event(db, data.name)
     events_created_total.inc()
+    background_tasks.add_task(generate_and_store_background, event.slug, event.name)
     return RedirectResponse(url=f"/e/{event.slug}", status_code=303)
 
 
@@ -192,7 +198,7 @@ def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
 
 
 def _og_image_response(event) -> Response:
-    image = render_event_og_jpeg(event.name)
+    image = render_event_og_jpeg(event.name, slug=event.slug)
     return Response(
         content=image,
         media_type="image/jpeg",

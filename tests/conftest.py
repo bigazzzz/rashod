@@ -11,10 +11,22 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 # state.
 os.environ["PUBLIC_BASE_URL"] = ""
 os.environ["EVENT_RETENTION_DAYS"] = "365"
+os.environ["OG_IMAGE_DIR"] = os.path.join(_tmp_dir, "og")
+os.environ["POLLINATIONS_API_KEY"] = ""
+os.makedirs(os.environ["OG_IMAGE_DIR"], exist_ok=True)
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def disable_pollinations_network(monkeypatch):
+    """Tests must not hit Pollinations; create_event schedules a background task."""
+    monkeypatch.setattr(
+        "app.routes.events.generate_and_store_background",
+        lambda slug, name: None,
+    )
 
 
 @pytest.fixture()
