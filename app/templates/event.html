@@ -8,7 +8,12 @@
 
   <div class="share-row">
     <input type="text" id="share-link" value="{{ share_url }}" readonly onclick="this.select()">
-    <button type="button" id="share-btn">Поделиться</button>
+    <button type="button" id="share-btn" data-event-name="{{ event.name }}">Поделиться</button>
+    <button type="button" id="qr-btn" aria-expanded="false" aria-controls="qr-panel">QR</button>
+  </div>
+  <div id="qr-panel" class="qr-panel" hidden>
+    <canvas id="qr-canvas" width="200" height="200" aria-label="QR-код ссылки на мероприятие"></canvas>
+    <p class="hint">Отсканируйте, чтобы открыть ссылку на мероприятие</p>
   </div>
 
   {% if error %}
@@ -85,17 +90,23 @@
 
   <p><a href="/e/{{ event.slug }}/results">Посмотреть результаты →</a></p>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script>
     (function () {
       const shareBtn = document.getElementById("share-btn");
       const shareLink = document.getElementById("share-link");
+      const qrBtn = document.getElementById("qr-btn");
+      const qrPanel = document.getElementById("qr-panel");
+      const qrCanvas = document.getElementById("qr-canvas");
+      let qrRendered = false;
 
       shareBtn.addEventListener("click", async function () {
         const url = shareLink.value;
+        const title = shareBtn.getAttribute("data-event-name") || "Поровну";
 
         if (navigator.share) {
           try {
-            await navigator.share({ url: url });
+            await navigator.share({ title: title, text: title, url: url });
             return;
           } catch (err) {
             if (err && err.name === "AbortError") {
@@ -130,6 +141,65 @@
         setTimeout(function () {
           shareBtn.textContent = original;
         }, 1500);
+      });
+
+      function closeQr() {
+        qrPanel.hidden = true;
+        qrBtn.setAttribute("aria-expanded", "false");
+      }
+
+      function renderQr(done) {
+        if (qrRendered) {
+          done(true);
+          return;
+        }
+        if (typeof QRCode === "undefined") {
+          done(false);
+          return;
+        }
+        QRCode.toCanvas(
+          qrCanvas,
+          shareLink.value,
+          {
+            width: 200,
+            margin: 2,
+            color: { dark: "#0a0816", light: "#f8ecd9" },
+          },
+          function (err) {
+            if (!err) {
+              qrRendered = true;
+            }
+            done(!err);
+          }
+        );
+      }
+
+      function openQr() {
+        renderQr(function (ok) {
+          if (!ok) {
+            return;
+          }
+          qrPanel.hidden = false;
+          qrBtn.setAttribute("aria-expanded", "true");
+        });
+      }
+
+      qrBtn.addEventListener("click", function () {
+        if (qrPanel.hidden) {
+          openQr();
+        } else {
+          closeQr();
+        }
+      });
+
+      document.addEventListener("click", function (event) {
+        if (qrPanel.hidden) {
+          return;
+        }
+        if (qrPanel.contains(event.target) || qrBtn.contains(event.target)) {
+          return;
+        }
+        closeQr();
       });
 
       document.querySelectorAll(".chips").forEach(function (group) {

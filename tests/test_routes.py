@@ -19,7 +19,7 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Пустые имя и сумма" in response.text
+    assert "QR-код рядом с кнопкой" in response.text
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -69,6 +69,17 @@ def test_event_page_shows_frequent_description_chips(client):
     assert 'class="chip chip--frequent" data-chip-value="сувениры"' in response.text
     assert 'data-chip-value="разовое"' not in response.text
     assert response.text.count('data-chip-value="продукты"') == 1
+
+
+def test_event_page_has_qr_controls(client):
+    slug = create_event(client, name="QR тест")
+    response = client.get(f"/e/{slug}")
+    assert response.status_code == 200
+    assert 'id="qr-btn"' in response.text
+    assert 'id="qr-panel"' in response.text
+    assert 'id="qr-canvas"' in response.text
+    assert 'data-event-name="QR тест"' in response.text
+    assert "qrcode@1.5.4" in response.text
 
 
 def test_empty_name_and_amount_get_defaults(client):

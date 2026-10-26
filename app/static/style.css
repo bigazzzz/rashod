@@ -102,12 +102,13 @@ form {
 
 .share-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .share-row input {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
   font-size: 0.85rem;
   color: var(--card-text-dim);
@@ -118,6 +119,40 @@ form {
   width: auto;
   margin-top: 0;
   padding: 0.6rem 1rem;
+}
+
+#qr-btn {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(240, 184, 78, 0.45);
+  box-shadow: none;
+}
+
+#qr-btn:hover {
+  background: rgba(240, 184, 78, 0.12);
+  box-shadow: none;
+}
+
+#qr-btn[aria-expanded="true"] {
+  border-color: var(--gold);
+  background: rgba(240, 184, 78, 0.18);
+}
+
+.qr-panel {
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(248, 236, 217, 0.06);
+  border: 1px solid rgba(240, 184, 78, 0.25);
+  border-radius: 12px;
+}
+
+.qr-panel canvas {
+  display: block;
+  margin: 0 auto 0.75rem;
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
 }
 
 @media (max-width: 480px) {
