@@ -28,6 +28,9 @@ def test_index_shows_version_and_releases(client):
     assert "О приложении" in response.text
     assert 'href="/about"' in response.text
     assert 'name="color-scheme" content="dark"' in response.text
+    assert 'src="/static/og-bg.jpg"' in response.text
+    assert "/static/beach-night.svg" not in response.text
+    assert client.get("/static/og-bg.jpg").status_code == 200
     css = client.get("/static/style.css")
     assert "color-scheme: dark" in css.text
     assert "О приложении" in response.text
