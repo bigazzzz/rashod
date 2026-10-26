@@ -38,6 +38,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Поровну", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+
+
+# #region agent log
+@app.middleware("http")
+async def _agent_log_all_requests(request: Request, call_next):
+    from app.debug_og import agent_log
+    response = await call_next(request)
+    if not request.url.path.startswith(("/static", "/debug", "/metrics", "/healthz")):
+        agent_log(hypothesis_id="F", location="main.py:middleware", message="request", data={"method": request.method, "path": request.url.path, "status": response.status_code, "ua": request.headers.get("user-agent", "")[:120]})
+    return response
+# #endregion
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(events.router)
