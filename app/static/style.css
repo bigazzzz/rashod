@@ -402,6 +402,24 @@ button.chip--frequent:hover {
   font-weight: 600;
 }
 
+.about-nav {
+  margin: 1.5rem 0 0;
+}
+
+.about-nav a {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.about-list {
+  margin: 0 0 1.5rem;
+}
+
+.about-list li {
+  background: rgba(248, 236, 217, 0.06);
+  border-left-color: var(--gold);
+}
+
 .changelog {
   margin-top: 2rem;
   padding-top: 1.25rem;

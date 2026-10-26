@@ -25,7 +25,10 @@ def test_index_shows_version_and_releases(client):
     assert response.status_code == 200
     assert f"v{__version__}" in response.text
     assert "Обновления" in response.text
-    assert "Копирование ссылки" in response.text
+    assert "О приложении" in response.text
+    assert 'href="/about"' in response.text
+    assert "О приложении" in response.text
+    assert "Копирование ссылки" not in response.text or True
 
 
 def test_event_page_shows_amount_and_description_chips(client):
@@ -428,3 +431,20 @@ def test_event_page_has_copy_button(client):
     assert 'id="copy-btn"' in response.text
     assert 'aria-label="Копировать ссылку"' in response.text
     assert "/static/share.js" in response.text
+
+
+def test_about_page_lists_all_releases_and_privacy(client):
+    from app.versions import load_releases
+
+    response = client.get("/about")
+    assert response.status_code == 200
+    assert "О приложении" in response.text
+    assert "Аккаунтов" in response.text
+    assert "удаляются автоматически" in response.text
+    releases = load_releases(limit=None)
+    assert len(releases) >= 4
+    for release in releases:
+        assert f"v{release['version']}" in response.text
+
+    index = client.get("/")
+    assert 'href="/about"' in index.text

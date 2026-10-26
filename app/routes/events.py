@@ -148,6 +148,18 @@ def index(request: Request):
     )
 
 
+@router.get("/about")
+def about_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "about.html",
+        {
+            "app_version": current_version(),
+            "releases": load_releases(limit=None),
+        },
+    )
+
+
 @router.post("/events")
 @limiter.limit("10/minute")
 def create_event(request: Request, name: str = Form(...), db: Session = Depends(get_db)):
