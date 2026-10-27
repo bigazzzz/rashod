@@ -68,6 +68,7 @@ jobs:
           AGE_FILE="${RUNNER_TEMP}/age-deploy.key"
           ENV_SECRETS="${RUNNER_TEMP}/env.secrets"
           KEY_FILE="${RUNNER_TEMP}/deploy_key"
+          REMOTE_SCRIPT="${RUNNER_TEMP}/remote-deploy.sh"
 
           install -m 600 /dev/null "$KEY_FILE"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$KEY_FILE"
@@ -79,33 +80,37 @@ jobs:
 
           SOPS_AGE_KEY_FILE="$AGE_FILE" sops -d --output-type dotenv secrets.enc.yaml > "$ENV_SECRETS"
           chmod 600 "$ENV_SECRETS"
-          # Do not print secret values — only confirm keys exist.
           grep -q '^OPS_TOKEN=' "$ENV_SECRETS"
           grep -q '^MCP_TOKEN=' "$ENV_SECRETS"
           echo "decrypted .env.secrets ($(wc -l < "$ENV_SECRETS") lines)"
 
-          SSH=(ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-          REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
-
-          # Avoid scp: remote shell profile prints to stdout and breaks the protocol.
-          "${SSH[@]}" "$REMOTE" 'bash --noprofile --norc -c "cat > /tmp/rashod.env.secrets"' < "$ENV_SECRETS"
-          echo "uploaded .env.secrets"
-
-          "${SSH[@]}" "$REMOTE" 'bash --noprofile --norc -s' <<'REMOTE'
+          SECRETS_B64="$(base64 -w0 < "$ENV_SECRETS")"
+          # Build remote script on the runner (delimiter at BOL after YAML indent strip).
+          cat > "$REMOTE_SCRIPT" <<EOF
           set -euo pipefail
           cd /home/biga/rashod
-          install -m 600 /tmp/rashod.env.secrets .env.secrets
-          rm -f /tmp/rashod.env.secrets
+          printf '%s' '${SECRETS_B64}' | base64 -d > .env.secrets
+          chmod 600 .env.secrets
           test -s .env.secrets
           echo secrets-file-ok
           ok=0
           for i in 1 2 3 4 5; do
             if git pull --ff-only; then ok=1; break; fi
-            echo "git pull failed (attempt $i); retrying…" >&2
-            sleep $((i * 5))
+            echo "git pull failed (attempt \$i); retrying…" >&2
+            sleep \$((i * 5))
           done
-          [[ "$ok" == 1 ]]
+          [[ "\$ok" == 1 ]]
           test -s .env.secrets
           export SKIP_GIT_PULL=1
           ./deploy.sh
-          REMOTE
+          EOF
+          # Drop YAML-preserved indent from the generated script.
+          sed -i 's/^[[:space:]]*//' "$REMOTE_SCRIPT"
+          echo "remote script ready ($(wc -l < "$REMOTE_SCRIPT") lines)"
+
+          REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
+          ssh -i "$KEY_FILE" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "$REMOTE" \
+            'bash --noprofile --norc -s' < "$REMOTE_SCRIPT"
