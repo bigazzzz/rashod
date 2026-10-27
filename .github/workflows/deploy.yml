@@ -46,8 +46,23 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          AGE_DEPLOY_KEY: ${{ secrets.AGE_DEPLOY_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: /home/biga/rashod/deploy.sh
+          envs: AGE_DEPLOY_KEY
+          script: |
+            set -euo pipefail
+            cd /home/biga/rashod
+            if [[ -z "${AGE_DEPLOY_KEY:-}" ]]; then
+              echo "error: AGE_DEPLOY_KEY GitHub secret is empty" >&2
+              exit 1
+            fi
+            mkdir -p keys
+            umask 077
+            # Exact key file contents from the GitHub secret (includes AGE-SECRET-KEY line).
+            printf '%s\n' "$AGE_DEPLOY_KEY" > keys/age-deploy.key
+            chmod 600 keys/age-deploy.key
+            ./deploy.sh

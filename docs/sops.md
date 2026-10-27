@@ -34,17 +34,26 @@ sops secrets.enc.yaml
 
 ## Деплой
 
-На сервере:
+CI (GitHub Actions) передаёт приватный **deploy**-ключ через secret `AGE_DEPLOY_KEY`
+(не коммитится) и перед `deploy.sh` пишет `keys/age-deploy.key` на сервер.
 
-1. `sops` и `age` в `PATH`
-2. `keys/age-deploy.key` (`chmod 600`)
-3. `.env` с публичными переменными
+На сервере также нужны:
+
+1. `sops` в `PATH` (если нет — `deploy.sh` ставит бинарник в `~/.local/bin`)
+2. `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …)
 
 ```bash
 ./deploy.sh
 # → scripts/sops-decrypt-env.sh → .env.secrets
 # → docker compose --env-file .env --env-file .env.secrets …
 ```
+
+Задать secret один раз (с машины, где есть `keys/age-deploy.key`):
+
+```bash
+gh secret set AGE_DEPLOY_KEY < keys/age-deploy.key
+```
+
 
 ## Ротация deploy-ключа
 
