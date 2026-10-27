@@ -3,8 +3,21 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [[ "${SKIP_GIT_PULL:-}" != "1" ]]; then
-  git pull --ff-only
+  ok=0
+  for i in 1 2 3 4 5; do
+    if git pull --ff-only; then
+      ok=1
+      break
+    fi
+    echo "git pull failed (attempt $i); retrying…" >&2
+    sleep $((i * 5))
+  done
+  if [[ "$ok" != 1 ]]; then
+    echo "error: git pull failed after retries" >&2
+    exit 1
+  fi
 fi
+
 
 if [[ ! -f .env ]]; then
   echo "error: .env missing (non-secret config: DOMAIN, PUBLIC_BASE_URL, …)" >&2

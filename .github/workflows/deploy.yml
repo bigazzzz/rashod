@@ -56,7 +56,7 @@ jobs:
           script: |
             set -euo pipefail
             cd /home/biga/rashod
-            git pull --ff-only
+            # Write deploy key first (does not depend on git).
             if [[ -z "${AGE_DEPLOY_KEY_B64:-}" ]]; then
               echo "error: AGE_DEPLOY_KEY_B64 GitHub secret is empty" >&2
               exit 1
@@ -71,5 +71,19 @@ jobs:
               exit 1
             fi
             echo "age-deploy.key ready ($(wc -c < keys/age-deploy.key) bytes)"
+            # Retry git pull — server↔GitHub sometimes resets.
+            ok=0
+            for i in 1 2 3 4 5; do
+              if git pull --ff-only; then
+                ok=1
+                break
+              fi
+              echo "git pull failed (attempt $i); retrying…" >&2
+              sleep $((i * 5))
+            done
+            if [[ "$ok" != 1 ]]; then
+              echo "error: git pull failed after retries" >&2
+              exit 1
+            fi
             export SKIP_GIT_PULL=1
             ./deploy.sh
