@@ -56,27 +56,23 @@ jobs:
             echo "AGE_DEPLOY_KEY_B64 secret is empty" >&2
             exit 1
           fi
-          install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "${RUNNER_TEMP}/deploy_key"
-          # Expand age key locally into the remote script (base64 charset is shell-safe in single quotes).
-          ssh -i "${RUNNER_TEMP}/deploy_key" \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "set -euo pipefail
-             cd /home/biga/rashod
-             mkdir -p keys
-             umask 077
-             printf '%s' '${AGE_DEPLOY_KEY_B64}' | base64 -d > keys/age-deploy.key
-             chmod 600 keys/age-deploy.key
-             grep -q AGE-SECRET-KEY- keys/age-deploy.key
-             echo age-key-ok
-             ok=0
-             for i in 1 2 3 4 5; do
-               if git pull --ff-only; then ok=1; break; fi
-               echo \"git pull failed (attempt \$i); retrying…\" >&2
-               sleep \$((i * 5))
-             done
-             [[ \"\$ok\" == 1 ]] || { echo git-pull-failed >&2; exit 1; }
-             export SKIP_GIT_PULL=1
-             ./deploy.sh"
+
+          KEY_FILE="${RUNNER_TEMP}/deploy_key"
+          AGE_FILE="${RUNNER_TEMP}/age-deploy.key"
+          install -m 600 /dev/null "$KEY_FILE"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$KEY_FILE"
+
+          printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > "$AGE_FILE"
+          chmod 600 "$AGE_FILE"
+          grep -q 'AGE-SECRET-KEY-' "$AGE_FILE"
+          echo "local age key ok ($(wc -c < "$AGE_FILE") bytes)"
+
+          SSH=(ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          SCP=(scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
+
+          "${SSH[@]}" "$REMOTE" 'mkdir -p /home/biga/rashod/keys && chmod 700 /home/biga/rashod/keys'
+          "${SCP[@]}" "$AGE_FILE" "${REMOTE}:/home/biga/rashod/keys/age-deploy.key"
+          "${SSH[@]}" "$REMOTE" 'chmod 600 /home/biga/rashod/keys/age-deploy.key && grep -q AGE-SECRET-KEY- /home/biga/rashod/keys/age-deploy.key && echo age-key-ok'
+
+          "${SSH[@]}" "$REMOTE" 'set -euo pipefail; cd /home/biga/rashod; test -s keys/age-deploy.key; ok=0; for i in 1 2 3 4 5; do if git pull --ff-only; then ok=1; break; fi; echo "git pull failed (attempt $i); retrying…" >&2; sleep $((i * 5)); done; [[ "$ok" == 1 ]]; test -s keys/age-deploy.key; export SKIP_GIT_PULL=1; ./deploy.sh'

@@ -49,7 +49,11 @@ ensure_sops() {
 
 KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
 COMPOSE_ENV=(--env-file .env)
-echo "deploy.sh: KEY_FILE=$KEY_FILE exists=$([[ -f $KEY_FILE ]] && echo yes || echo no) size=$(wc -c < "$KEY_FILE" 2>/dev/null || echo 0)"
+if [[ -f "$KEY_FILE" ]]; then
+  echo "deploy.sh: KEY_FILE=$KEY_FILE exists=yes size=$(wc -c < "$KEY_FILE")"
+else
+  echo "deploy.sh: KEY_FILE=$KEY_FILE exists=no"
+fi
 
 if [[ -f "$KEY_FILE" ]] && [[ -s "$KEY_FILE" ]]; then
   ensure_sops
