@@ -5,3 +5,8 @@ venv/
 *.db
 .pytest_cache/
 .env
+.env.secrets
+keys/*
+!keys/README.md
+*.age.key
+age.key

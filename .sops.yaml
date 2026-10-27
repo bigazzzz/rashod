@@ -1,0 +1,5 @@
+# Creation rules for Mozilla SOPS (age).
+# Private key lives ONLY on disk (keys/age.key) — never commit it.
+creation_rules:
+  - path_regex: secrets\.enc\.ya?ml$
+    age: age1wapnu3llf73sgxwk9sxhyxp3ccewwa7rzjx9hqym47huc5q55y5svpjedm

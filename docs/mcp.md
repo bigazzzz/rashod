@@ -4,17 +4,13 @@
 
 ## Токены
 
-В `.env` на сервере (не в git):
-
-```bash
-OPS_TOKEN=длинный-секрет
-MCP_TOKEN=длинный-секрет   # можно тот же, что OPS_TOKEN
-```
+`OPS_TOKEN` и `MCP_TOKEN` хранятся в **SOPS** (`secrets.enc.yaml`), не в открытом `.env`.  
+См. [docs/sops.md](sops.md).
 
 - `OPS_TOKEN` — заголовок `X-Ops-Token` на `/internal/ops/*` внутри Docker-сети.
 - `MCP_TOKEN` — `Authorization: Bearer …` на `https://porovnu.su/mcp`.
 
-Пустой `OPS_TOKEN` отключает ops API (404). Пустой `MCP_TOKEN` — MCP отвечает 503.
+После `./scripts/sops-decrypt-env.sh` значения попадают в `.env.secrets` для compose.
 
 ## Cursor (remote MCP)
 
