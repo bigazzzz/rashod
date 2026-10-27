@@ -34,9 +34,8 @@ sops secrets.enc.yaml
 
 ## Деплой
 
-CI расшифровывает `secrets.enc.yaml` на runner’е (secret `AGE_DEPLOY_KEY_B64`)
-и по SSH передаёт однострочные `OPS_TOKEN` / `MCP_TOKEN` → файл `.env.secrets`
-на сервере. Приватный age-ключ на сервер не копируется.
+CI подставляет secret `AGE_DEPLOY_KEY_B64` (base64 от `keys/age-deploy.key`) в SSH-скрипт,
+пишет `keys/age-deploy.key` на сервере, затем `deploy.sh` расшифровывает `secrets.enc.yaml` → `.env.secrets`.
 
 На сервере нужен `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …).
 
@@ -46,14 +45,11 @@ CI расшифровывает `secrets.enc.yaml` на runner’е (secret `AGE
 base64 -w0 < keys/age-deploy.key | gh secret set AGE_DEPLOY_KEY_B64
 ```
 
-
-
-
 ## Ротация deploy-ключа
 
 ```bash
 age-keygen -o keys/age-deploy.key
 # обновить recipient deploy в .sops.yaml
 SOPS_AGE_KEY_FILE=keys/age-dev.key sops updatekeys secrets.enc.yaml
-# скопировать новый age-deploy.key на сервер, удалить старый
+# скопировать новый age-deploy.key на сервер / обновить AGE_DEPLOY_KEY_B64, удалить старый
 ```

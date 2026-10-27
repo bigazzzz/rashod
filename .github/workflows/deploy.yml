@@ -44,55 +44,22 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install sops
-        run: |
-          curl -fsSL -o /usr/local/bin/sops \
-            https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
-          chmod 755 /usr/local/bin/sops
-
-      - name: Decrypt secrets for deploy
-        id: secrets
-        env:
-          AGE_DEPLOY_KEY_B64: ${{ secrets.AGE_DEPLOY_KEY_B64 }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${AGE_DEPLOY_KEY_B64:-}" ]]; then
-            echo "AGE_DEPLOY_KEY_B64 secret is empty" >&2
-            exit 1
-          fi
-          echo "$AGE_DEPLOY_KEY_B64" | base64 -d > /tmp/age-deploy.key
-          chmod 600 /tmp/age-deploy.key
-          SOPS_AGE_KEY_FILE=/tmp/age-deploy.key sops -d --output-type dotenv secrets.enc.yaml > /tmp/dotenv.secrets
-          OPS_TOKEN=$(sed -n 's/^OPS_TOKEN=//p' /tmp/dotenv.secrets)
-          MCP_TOKEN=$(sed -n 's/^MCP_TOKEN=//p' /tmp/dotenv.secrets)
-          POLLINATIONS_API_KEY=$(sed -n 's/^POLLINATIONS_API_KEY=//p' /tmp/dotenv.secrets || true)
-          if [[ -z "$OPS_TOKEN" || -z "$MCP_TOKEN" ]]; then
-            echo "decrypted tokens are empty" >&2
-            exit 1
-          fi
-          {
-            echo "OPS_TOKEN=$OPS_TOKEN"
-            echo "MCP_TOKEN=$MCP_TOKEN"
-            echo "POLLINATIONS_API_KEY=$POLLINATIONS_API_KEY"
-          } >> "$GITHUB_ENV"
-          rm -f /tmp/age-deploy.key /tmp/dotenv.secrets
-
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          OPS_TOKEN: ${{ env.OPS_TOKEN }}
-          MCP_TOKEN: ${{ env.MCP_TOKEN }}
-          POLLINATIONS_API_KEY: ${{ env.POLLINATIONS_API_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: OPS_TOKEN,MCP_TOKEN,POLLINATIONS_API_KEY
           script: |
             set -euo pipefail
             cd /home/biga/rashod
+            mkdir -p keys
+            umask 077
+            # Inject base64 age key via GitHub secret expansion (A-Za-z0-9+/= only; no appleboy envs — they were not reaching the remote).
+            printf '%s' '${{ secrets.AGE_DEPLOY_KEY_B64 }}' | base64 -d > keys/age-deploy.key
+            chmod 600 keys/age-deploy.key
+            grep -q 'AGE-SECRET-KEY-' keys/age-deploy.key
+            echo "age-deploy.key ready ($(wc -c < keys/age-deploy.key) bytes)"
             ok=0
             for i in 1 2 3 4 5; do
               if git pull --ff-only; then ok=1; break; fi
@@ -100,20 +67,5 @@ jobs:
               sleep $((i * 5))
             done
             [[ "$ok" == 1 ]] || { echo "git pull failed" >&2; exit 1; }
-            if [[ -z "${OPS_TOKEN:-}" || -z "${MCP_TOKEN:-}" ]]; then
-              echo "error: OPS_TOKEN/MCP_TOKEN not passed from CI" >&2
-              exit 1
-            fi
-            umask 077
-            cat > .env.secrets <<EOF
-            POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY:-}
-            OPS_TOKEN=${OPS_TOKEN}
-            MCP_TOKEN=${MCP_TOKEN}
-            EOF
-            # strip leading spaces from heredoc indentation
-            sed -i 's/^[[:space:]]*//' .env.secrets
-            chmod 600 .env.secrets
-            echo "Wrote .env.secrets ($(wc -l < .env.secrets) lines)"
             export SKIP_GIT_PULL=1
-            export SKIP_SOPS_DECRYPT=1
             ./deploy.sh

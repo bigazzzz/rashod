@@ -24,48 +24,43 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+# Optional: allow CI/manual to drop the key as base64.
+if [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
+  mkdir -p keys
+  umask 077
+  printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
+  chmod 600 keys/age-deploy.key
+fi
+
+ensure_sops() {
+  if command -v sops >/dev/null 2>&1; then
+    return 0
+  fi
+  local bindir="${HOME}/.local/bin"
+  mkdir -p "$bindir"
+  local dest="${bindir}/sops"
+  echo "sops not found; installing to ${dest}"
+  curl -fsSL -o "$dest" \
+    "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64"
+  chmod 755 "$dest"
+  export PATH="${bindir}:${PATH}"
+  command -v sops >/dev/null
+}
+
+KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
 COMPOSE_ENV=(--env-file .env)
 
-if [[ "${SKIP_SOPS_DECRYPT:-}" == "1" ]] && [[ -f .env.secrets ]]; then
-  echo "Using pre-written .env.secrets (CI)"
+if [[ -f "$KEY_FILE" ]] && [[ -s "$KEY_FILE" ]]; then
+  ensure_sops
+  SOPS_AGE_KEY_FILE="$KEY_FILE" ./scripts/sops-decrypt-env.sh
+  COMPOSE_ENV+=(--env-file .env.secrets)
+elif [[ -f .env.secrets ]]; then
+  echo "warn: $KEY_FILE missing; reusing existing .env.secrets" >&2
   COMPOSE_ENV+=(--env-file .env.secrets)
 else
-  # Optional local/server path: age-deploy key → sops decrypt
-  if [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
-    mkdir -p keys
-    umask 077
-    echo "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
-    chmod 600 keys/age-deploy.key
-  fi
-
-  ensure_sops() {
-    if command -v sops >/dev/null 2>&1; then
-      return 0
-    fi
-    local bindir="${HOME}/.local/bin"
-    mkdir -p "$bindir"
-    local dest="${bindir}/sops"
-    echo "sops not found; installing to ${dest}"
-    curl -fsSL -o "$dest" \
-      "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64"
-    chmod 755 "$dest"
-    export PATH="${bindir}:${PATH}"
-    command -v sops >/dev/null
-  }
-
-  KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
-  if [[ -f "$KEY_FILE" ]] && [[ -s "$KEY_FILE" ]]; then
-    ensure_sops
-    SOPS_AGE_KEY_FILE="$KEY_FILE" ./scripts/sops-decrypt-env.sh
-    COMPOSE_ENV+=(--env-file .env.secrets)
-  elif [[ -f .env.secrets ]]; then
-    echo "warn: age key missing; reusing existing .env.secrets" >&2
-    COMPOSE_ENV+=(--env-file .env.secrets)
-  else
-    echo "error: no .env.secrets and no age-deploy key" >&2
-    echo "CI should decrypt SOPS and pass OPS_TOKEN/MCP_TOKEN. See docs/sops.md" >&2
-    exit 1
-  fi
+  echo "error: deploy age key missing ($KEY_FILE) and no .env.secrets" >&2
+  echo "Set GitHub secret AGE_DEPLOY_KEY_B64 (base64 of keys/age-deploy.key)." >&2
+  exit 1
 fi
 
 docker compose "${COMPOSE_ENV[@]}" pull || true
