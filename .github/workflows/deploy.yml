@@ -57,14 +57,14 @@ jobs:
           grep -q 'AGE-SECRET-KEY-' age-deploy.key
           echo "decoded age-deploy.key ($(wc -c < age-deploy.key) bytes)"
 
-      - name: Upload age-deploy key
+      - name: Upload age-deploy key to /tmp
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           source: age-deploy.key
-          target: /home/biga/rashod/keys/
+          target: /tmp
           overwrite: true
 
       - name: Deploy over SSH
@@ -73,4 +73,4 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: "set -euo pipefail; cd /home/biga/rashod; chmod 600 keys/age-deploy.key; test -s keys/age-deploy.key; grep -q AGE-SECRET-KEY- keys/age-deploy.key; echo age-key-ok; git pull --ff-only || git pull --ff-only || git pull --ff-only; export SKIP_GIT_PULL=1; ./deploy.sh"
+          script: "set -euo pipefail; cd /home/biga/rashod; mkdir -p keys; install -m 600 /tmp/age-deploy.key keys/age-deploy.key; rm -f /tmp/age-deploy.key; grep -q AGE-SECRET-KEY- keys/age-deploy.key; echo age-key-ok; git pull --ff-only || git pull --ff-only || git pull --ff-only; export SKIP_GIT_PULL=1; ./deploy.sh"
