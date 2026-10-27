@@ -85,32 +85,37 @@ jobs:
           echo "decrypted .env.secrets ($(wc -l < "$ENV_SECRETS") lines)"
 
           SECRETS_B64="$(base64 -w0 < "$ENV_SECRETS")"
-          # Build remote script on the runner (delimiter at BOL after YAML indent strip).
-          cat > "$REMOTE_SCRIPT" <<EOF
-          set -euo pipefail
-          cd /home/biga/rashod
-          printf '%s' '${SECRETS_B64}' | base64 -d > .env.secrets
-          chmod 600 .env.secrets
-          test -s .env.secrets
-          echo secrets-file-ok
-          ok=0
-          for i in 1 2 3 4 5; do
-            if git pull --ff-only; then ok=1; break; fi
-            echo "git pull failed (attempt \$i); retrying…" >&2
-            sleep \$((i * 5))
-          done
-          [[ "\$ok" == 1 ]]
-          test -s .env.secrets
-          export SKIP_GIT_PULL=1
-          ./deploy.sh
-          EOF
-          # Drop YAML-preserved indent from the generated script.
-          sed -i 's/^[[:space:]]*//' "$REMOTE_SCRIPT"
-          echo "remote script ready ($(wc -l < "$REMOTE_SCRIPT") lines)"
 
+          # Write remote script without relying on YAML indentation tricks.
+          {
+            echo 'set -euo pipefail'
+            echo 'echo remote-start'
+            echo 'cd /home/biga/rashod'
+            echo "printf '%s' '${SECRETS_B64}' | base64 -d > .env.secrets"
+            echo 'chmod 600 .env.secrets'
+            echo 'test -s .env.secrets'
+            echo 'echo secrets-file-ok lines=$(wc -l < .env.secrets)'
+            echo 'ok=0'
+            echo 'for i in 1 2 3 4 5; do'
+            echo '  if git pull --ff-only; then ok=1; break; fi'
+            echo '  echo "git pull failed (attempt $i); retrying…" >&2'
+            echo '  sleep $((i * 5))'
+            echo 'done'
+            echo '[[ "$ok" == 1 ]]'
+            echo 'test -s .env.secrets'
+            echo 'echo secrets-still-ok-after-pull'
+            echo 'export SKIP_GIT_PULL=1'
+            echo './deploy.sh'
+          } > "$REMOTE_SCRIPT"
+
+          echo "remote script ready ($(wc -l < "$REMOTE_SCRIPT") lines, first=$(head -1 "$REMOTE_SCRIPT"))"
+
+          SCRIPT_B64="$(base64 -w0 < "$REMOTE_SCRIPT")"
           REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
+
+          # Pass script as base64 argument so login-shell stdin quirks cannot eat it.
           ssh -i "$KEY_FILE" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             "$REMOTE" \
-            'bash --noprofile --norc -s' < "$REMOTE_SCRIPT"
+            "printf '%s' '${SCRIPT_B64}' | base64 -d | bash --noprofile --norc"
