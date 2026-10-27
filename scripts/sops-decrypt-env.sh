@@ -5,7 +5,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-KEY_FILE="${SOPS_AGE_KEY_FILE:-$ROOT/keys/age.key}"
+# Prefer dedicated deploy key on the server; fall back to age-dev for local use.
+if [[ -n "${SOPS_AGE_KEY_FILE:-}" ]]; then
+  KEY_FILE="$SOPS_AGE_KEY_FILE"
+elif [[ -f "$ROOT/keys/age-deploy.key" ]]; then
+  KEY_FILE="$ROOT/keys/age-deploy.key"
+elif [[ -f "$ROOT/keys/age-dev.key" ]]; then
+  KEY_FILE="$ROOT/keys/age-dev.key"
+else
+  KEY_FILE="$ROOT/keys/age-deploy.key"
+fi
 ENC_FILE="${SOPS_SECRETS_FILE:-$ROOT/secrets.enc.yaml}"
 OUT_FILE="${SOPS_DOTENV_OUT:-$ROOT/.env.secrets}"
 
@@ -16,7 +25,7 @@ fi
 
 if [[ ! -f "$KEY_FILE" ]]; then
   echo "error: age private key missing: $KEY_FILE" >&2
-  echo "Copy keys/age.key to the server (chmod 600) or set SOPS_AGE_KEY_FILE." >&2
+  echo "On the server: copy keys/age-deploy.key (chmod 600). See docs/sops.md" >&2
   exit 1
 fi
 

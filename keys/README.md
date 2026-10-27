@@ -1,12 +1,13 @@
-# Age private key (local / server only)
+# Age keys (never commit `*.key`)
 
-Place `age.key` here (`chmod 600`). This directory is gitignored except this README.
+| File | Where | Purpose |
+|------|--------|---------|
+| `age-deploy.key` | **server only** | `deploy.sh` decrypts `secrets.enc.yaml` |
+| `age-dev.key` | developer machine | `sops secrets.enc.yaml` edits |
+| `age-deploy.pub.txt` / `age-dev.pub.txt` | optional local notes | public keys (also in `.sops.yaml`) |
 
-Generate (once):
+Do **not** put a personal age key on the server. Deploy uses `age-deploy.key` only.
 
 ```bash
-age-keygen -o keys/age.key
+chmod 600 keys/age-deploy.key keys/age-dev.key
 ```
-
-Then put the printed **public** key into `.sops.yaml` `age:` recipient and run
-`sops updatekeys secrets.enc.yaml` if rotating.

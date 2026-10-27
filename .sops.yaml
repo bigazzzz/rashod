@@ -1,5 +1,8 @@
-# Creation rules for Mozilla SOPS (age).
-# Private key lives ONLY on disk (keys/age.key) — never commit it.
+# Mozilla SOPS (age). Private keys are NEVER committed.
+# - keys/age-deploy.key → server only (deploy decrypt)
+# - keys/age-dev.key    → local edit of secrets.enc.yaml
 creation_rules:
   - path_regex: secrets\.enc\.ya?ml$
-    age: age1wapnu3llf73sgxwk9sxhyxp3ccewwa7rzjx9hqym47huc5q55y5svpjedm
+    age: >-
+      age1650lgrqsvylfnjx6k7293wk0dp803y77rufc4e048apj5q588ctsktrxcx,
+      age15u676h54ky9gexfmajlfjxdav6ftyc0wxm9uxwuykzkp30z0z9ms60e9r9

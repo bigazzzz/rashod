@@ -1,62 +1,56 @@
 # Секреты через Mozilla SOPS (age)
 
-Чувствительные переменные хранятся в git **только** в зашифрованном виде: [`secrets.enc.yaml`](../secrets.enc.yaml).
+Чувствительные переменные в git только в [`secrets.enc.yaml`](../secrets.enc.yaml).
+
+## Ключи (разделены специально)
+
+| Ключ | Куда | Зачем |
+|------|------|--------|
+| `keys/age-deploy.key` | **только сервер** | `deploy.sh` расшифровывает секреты |
+| `keys/age-dev.key` | машина разработчика | правка `sops secrets.enc.yaml` |
+
+Личный age-ключ для деплоя **не используется**. На сервер копируйте только `age-deploy.key`.
+
+Публичные ключи прописаны в [`.sops.yaml`](../.sops.yaml).
 
 ## Что шифруем
 
 | Переменная | Назначение |
 |------------|------------|
 | `POLLINATIONS_API_KEY` | опциональный ключ Pollinations |
-| `OPS_TOKEN` | доступ к `/internal/ops/*` |
-| `MCP_TOKEN` | Bearer для `https://…/mcp` |
+| `OPS_TOKEN` | `/internal/ops/*` |
+| `MCP_TOKEN` | Bearer для `/mcp` |
 
-Публичные настройки (`DOMAIN`, `PUBLIC_BASE_URL`, `EVENT_RETENTION_DAYS`) остаются в обычном `.env` (не в git).
+Публичные `DOMAIN`, `PUBLIC_BASE_URL`, … — в обычном `.env` (не в git).
 
-## Файлы
-
-- [`.sops.yaml`](../.sops.yaml) — правило шифрования (публичный age-ключ)
-- `secrets.enc.yaml` — зашифрованные значения (в git)
-- `keys/age.key` — **приватный** age-ключ (**не** в git), `chmod 600`
-- `.env.secrets` — расшифрованный dotenv на машине (**не** в git)
-
-## Редактирование секретов
-
-На машине с приватным ключом:
+## Редактирование (локально)
 
 ```bash
-export SOPS_AGE_KEY_FILE=$PWD/keys/age.key
+export SOPS_AGE_KEY_FILE=$PWD/keys/age-dev.key
 sops secrets.enc.yaml
 ```
 
-Сохранить и закоммитить обновлённый `secrets.enc.yaml`.
+Закоммитьте обновлённый `secrets.enc.yaml`.
 
 ## Деплой
 
-[`deploy.sh`](../deploy.sh) вызывает [`scripts/sops-decrypt-env.sh`](../scripts/sops-decrypt-env.sh), затем:
-
-```bash
-docker compose --env-file .env --env-file .env.secrets up -d …
-```
-
-На сервере должны быть:
+На сервере:
 
 1. `sops` и `age` в `PATH`
-2. `keys/age.key` (или `SOPS_AGE_KEY_FILE=…`)
+2. `keys/age-deploy.key` (`chmod 600`)
 3. `.env` с публичными переменными
 
-## Новый ключ / ротация
-
 ```bash
-age-keygen -o keys/age.key
-# обновить recipient в .sops.yaml публичным ключом из комментария в age.key
-SOPS_AGE_KEY_FILE=keys/age.key sops updatekeys secrets.enc.yaml
+./deploy.sh
+# → scripts/sops-decrypt-env.sh → .env.secrets
+# → docker compose --env-file .env --env-file .env.secrets …
 ```
 
-Скопируйте новый `keys/age.key` на сервер по безопасному каналу и удалите старый.
-
-## Локальный compose
+## Ротация deploy-ключа
 
 ```bash
-./scripts/sops-decrypt-env.sh
-docker compose --env-file .env --env-file .env.secrets up -d --build
+age-keygen -o keys/age-deploy.key
+# обновить recipient deploy в .sops.yaml
+SOPS_AGE_KEY_FILE=keys/age-dev.key sops updatekeys secrets.enc.yaml
+# скопировать новый age-deploy.key на сервер, удалить старый
 ```
