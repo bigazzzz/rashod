@@ -44,33 +44,39 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Decode age-deploy key
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          AGE_DEPLOY_KEY_B64: ${{ secrets.AGE_DEPLOY_KEY_B64 }}
         run: |
           set -euo pipefail
-          if [[ -z "${{ secrets.AGE_DEPLOY_KEY_B64 }}" ]]; then
+          if [[ -z "${AGE_DEPLOY_KEY_B64:-}" ]]; then
             echo "AGE_DEPLOY_KEY_B64 secret is empty" >&2
             exit 1
           fi
-          echo "${{ secrets.AGE_DEPLOY_KEY_B64 }}" | base64 -d > age-deploy.key
-          # scp-action runs in Docker and must be able to read the file
-          chmod 644 age-deploy.key
-          grep -q 'AGE-SECRET-KEY-' age-deploy.key
-          echo "decoded age-deploy.key ($(wc -c < age-deploy.key) bytes)"
-
-      - name: Upload age-deploy key to /tmp
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: age-deploy.key
-          target: /tmp
-          overwrite: true
-
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: "set -euo pipefail; cd /home/biga/rashod; mkdir -p keys; install -m 600 /tmp/age-deploy.key keys/age-deploy.key; rm -f /tmp/age-deploy.key; grep -q AGE-SECRET-KEY- keys/age-deploy.key; echo age-key-ok; git pull --ff-only || git pull --ff-only || git pull --ff-only; export SKIP_GIT_PULL=1; ./deploy.sh"
+          install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "${RUNNER_TEMP}/deploy_key"
+          # Expand age key locally into the remote script (base64 charset is shell-safe in single quotes).
+          ssh -i "${RUNNER_TEMP}/deploy_key" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "set -euo pipefail
+             cd /home/biga/rashod
+             mkdir -p keys
+             umask 077
+             printf '%s' '${AGE_DEPLOY_KEY_B64}' | base64 -d > keys/age-deploy.key
+             chmod 600 keys/age-deploy.key
+             grep -q AGE-SECRET-KEY- keys/age-deploy.key
+             echo age-key-ok
+             ok=0
+             for i in 1 2 3 4 5; do
+               if git pull --ff-only; then ok=1; break; fi
+               echo \"git pull failed (attempt \$i); retrying…\" >&2
+               sleep \$((i * 5))
+             done
+             [[ \"\$ok\" == 1 ]] || { echo git-pull-failed >&2; exit 1; }
+             export SKIP_GIT_PULL=1
+             ./deploy.sh"
