@@ -85,13 +85,14 @@ jobs:
           echo "decrypted .env.secrets ($(wc -l < "$ENV_SECRETS") lines)"
 
           SSH=(ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-          SCP=(scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
           REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
-          "${SCP[@]}" "$ENV_SECRETS" "${REMOTE}:/tmp/rashod.env.secrets"
+          # Avoid scp: remote shell profile prints to stdout and breaks the protocol.
+          "${SSH[@]}" "$REMOTE" 'bash --noprofile --norc -c "cat > /tmp/rashod.env.secrets"' < "$ENV_SECRETS"
           echo "uploaded .env.secrets"
 
-          "${SSH[@]}" "$REMOTE" "set -euo pipefail
+          "${SSH[@]}" "$REMOTE" 'bash --noprofile --norc -s' <<'REMOTE'
+          set -euo pipefail
           cd /home/biga/rashod
           install -m 600 /tmp/rashod.env.secrets .env.secrets
           rm -f /tmp/rashod.env.secrets
@@ -100,10 +101,11 @@ jobs:
           ok=0
           for i in 1 2 3 4 5; do
             if git pull --ff-only; then ok=1; break; fi
-            echo \"git pull failed (attempt \$i); retrying…\" >&2
-            sleep \$((i * 5))
+            echo "git pull failed (attempt $i); retrying…" >&2
+            sleep $((i * 5))
           done
-          [[ \"\$ok\" == 1 ]]
+          [[ "$ok" == 1 ]]
           test -s .env.secrets
           export SKIP_GIT_PULL=1
-          ./deploy.sh"
+          ./deploy.sh
+          REMOTE
