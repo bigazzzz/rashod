@@ -1,0 +1,5 @@
+mcp>=1.9,<2
+httpx==0.28.1
+uvicorn[standard]==0.34.0
+starlette>=0.40,<0.42
+python-dotenv==1.0.1

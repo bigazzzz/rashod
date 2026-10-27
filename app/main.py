@@ -17,7 +17,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.cleanup import run_cleanup_loop
 from app.db import init_db
 from app.rate_limit import limiter
-from app.routes import events, expenses
+from app.routes import events, expenses, ops
 from app.templating import templates
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -42,6 +42,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(events.router)
 app.include_router(expenses.router)
+app.include_router(ops.router)
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 

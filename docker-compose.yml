@@ -18,6 +18,8 @@ services:
       OG_IMAGE_DIR: /data/og
       # Optional. Never commit a real key; leave empty for anonymous Pollinations.
       POLLINATIONS_API_KEY: ${POLLINATIONS_API_KEY:-}
+      # Shared with mcp. Empty = /internal/ops disabled (404).
+      OPS_TOKEN: ${OPS_TOKEN:-}
     volumes:
       - db_data:/data
     healthcheck:
@@ -25,6 +27,30 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
+  mcp:
+    image: ghcr.io/bigazzzz/rashod-mcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    expose:
+      - "8080"
+    environment:
+      OPS_BASE_URL: http://web:8000
+      OPS_TOKEN: ${OPS_TOKEN:-}
+      MCP_TOKEN: ${MCP_TOKEN:-}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8080"
+      MCP_RATE_LIMIT_PER_MINUTE: ${MCP_RATE_LIMIT_PER_MINUTE:-60}
+    depends_on:
+      web:
+        condition: service_healthy
 
   caddy:
     image: caddy:2-alpine
@@ -45,6 +71,7 @@ services:
       - caddy_config:/config
     depends_on:
       - web
+      - mcp
 
 volumes:
   db_data:
