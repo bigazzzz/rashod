@@ -20,10 +20,10 @@
 <body>
   <main class="container">
     <img
-      class="hero{% block hero_class %}{% endblock %}"
-      src="{% block hero_src %}/static/beach-night.svg{% endblock %}"
-      alt="{% block hero_alt %}Ночной пляж: яркая луна, костёр и гротескные силуэты друзей с гитарой у палаток{% endblock %}"
-      {% block hero_attrs %}{% endblock %}
+      class="hero{% block hero_class %} hero--compact{% endblock %}"
+      src="{% block hero_src %}/og/site.jpg{% endblock %}"
+      alt="{% block hero_alt %}Превью Поровну{% endblock %}"
+      {% block hero_attrs %}width="1200" height="630"{% endblock %}
     >
     {% block content %}{% endblock %}
   </main>

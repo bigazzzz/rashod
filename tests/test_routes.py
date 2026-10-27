@@ -532,6 +532,8 @@ def test_about_page_lists_all_releases_and_privacy(client):
     assert "О приложении" in response.text
     assert "Аккаунтов" in response.text
     assert "удаляются автоматически" in response.text
+    assert 'src="/og/site.jpg"' in response.text
+    assert "/static/beach-night.svg" not in response.text
     releases = load_releases(limit=None)
     assert len(releases) >= 4
     for release in releases:
