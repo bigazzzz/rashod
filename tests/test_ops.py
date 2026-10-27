@@ -67,14 +67,30 @@ def test_ops_stats_and_event_info_no_pii(client, monkeypatch):
     assert body["events"] >= 1
     assert body["expenses"] >= 1
     assert body["og_files"] >= 1
+    assert body["unique_participants"]["distinct_payer_names"] >= 1
+    assert "meaning" in body["unique_participants"]
     assert "events_created_total" in body["counters"]
+    assert "СекретноеИмя" not in stats.text
+
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "СекретноеИмя", "description": "ещё", "amount": "1"},
+        follow_redirects=False,
+    )
+    client.post(
+        f"/e/{slug}/expenses",
+        data={"payer_name": "Другой", "description": "x", "amount": "2"},
+        follow_redirects=False,
+    )
+    stats2 = client.get("/internal/ops/stats", headers=headers).json()
+    assert stats2["unique_participants"]["distinct_payer_names"] >= 2
 
     info = client.get(f"/internal/ops/event/{slug}", headers=headers)
     assert info.status_code == 200
     meta = info.json()
     assert meta["slug"] == slug
     assert meta["name"] == "Ops Meta"
-    assert meta["expense_count"] == 1
+    assert meta["expense_count"] == 3
     assert meta["has_og_background"] is True
     assert f"/e/{slug}" in meta["urls"]["event"]
     assert "СекретноеИмя" not in info.text

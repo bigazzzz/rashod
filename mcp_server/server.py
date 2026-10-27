@@ -69,7 +69,12 @@ def health() -> str:
         return _tool_error(str(exc))
 
 
-@mcp.tool(description="Site stats: event/expense/OG counts and app Prometheus counters.")
+@mcp.tool(
+    description=(
+        "Site stats: event/expense/OG counts, distinct payer_name participants "
+        "(not login accounts — free-text names only; no name list), and app counters."
+    )
+)
 def site_stats() -> str:
     started = time.perf_counter()
     try:

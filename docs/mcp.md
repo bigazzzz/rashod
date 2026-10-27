@@ -38,7 +38,7 @@ MCP_TOKEN=длинный-секрет   # можно тот же, что OPS_TOK
 | Tool | Что делает |
 |------|------------|
 | `health` | Версия, БД, OG dir, флаги конфига (без секретов) |
-| `site_stats` | Число событий/трат/OG + counters |
+| `site_stats` | Число событий/трат/OG, уникальные имена участников (не аккаунты) + counters |
 | `metrics_summary` | Урезанный снимок Prometheus |
 | `event_info` | Мета события по slug (без сумм и имён плательщиков) |
 | `public_checks` | Статус `/healthz`, `/`, `/og/site.jpg` |

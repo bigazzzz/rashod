@@ -78,6 +78,10 @@ def _counter_value(counter) -> float:
 def ops_stats(db: Session = Depends(get_db)):
     events = db.query(func.count(Event.id)).scalar() or 0
     expenses = db.query(func.count(Expense.id)).scalar() or 0
+    # Not real accounts — free-text payer_name on expenses (counts only, no name list).
+    unique_participants = (
+        db.query(func.count(func.distinct(Expense.payer_name))).scalar() or 0
+    )
     og_files = 0
     if OG_IMAGE_DIR.is_dir():
         og_files = sum(
@@ -91,6 +95,13 @@ def ops_stats(db: Session = Depends(get_db)):
         "events": int(events),
         "expenses": int(expenses),
         "og_files": og_files,
+        "unique_participants": {
+            "distinct_payer_names": int(unique_participants),
+            "meaning": (
+                "Count of distinct expense payer_name values. "
+                "Not login accounts; same person may use different spellings."
+            ),
+        },
         "counters": counters,
     }
 
