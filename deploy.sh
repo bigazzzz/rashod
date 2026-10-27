@@ -49,6 +49,7 @@ ensure_sops() {
 
 KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
 COMPOSE_ENV=(--env-file .env)
+echo "deploy.sh: KEY_FILE=$KEY_FILE exists=$([[ -f $KEY_FILE ]] && echo yes || echo no) size=$(wc -c < "$KEY_FILE" 2>/dev/null || echo 0)"
 
 if [[ -f "$KEY_FILE" ]] && [[ -s "$KEY_FILE" ]]; then
   ensure_sops
@@ -60,6 +61,7 @@ elif [[ -f .env.secrets ]]; then
 else
   echo "error: deploy age key missing ($KEY_FILE) and no .env.secrets" >&2
   echo "Set GitHub secret AGE_DEPLOY_KEY_B64 (base64 of keys/age-deploy.key)." >&2
+  ls -la keys 2>&1 || true
   exit 1
 fi
 

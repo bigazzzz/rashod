@@ -44,28 +44,33 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Decode age-deploy key
+        run: |
+          set -euo pipefail
+          if [[ -z "${{ secrets.AGE_DEPLOY_KEY_B64 }}" ]]; then
+            echo "AGE_DEPLOY_KEY_B64 secret is empty" >&2
+            exit 1
+          fi
+          echo "${{ secrets.AGE_DEPLOY_KEY_B64 }}" | base64 -d > age-deploy.key
+          chmod 600 age-deploy.key
+          grep -q 'AGE-SECRET-KEY-' age-deploy.key
+          echo "decoded age-deploy.key ($(wc -c < age-deploy.key) bytes)"
+
+      - name: Upload age-deploy key
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: age-deploy.key
+          target: /home/biga/rashod/keys/
+          overwrite: true
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd /home/biga/rashod
-            mkdir -p keys
-            umask 077
-            # Inject base64 age key via GitHub secret expansion (A-Za-z0-9+/= only; no appleboy envs — they were not reaching the remote).
-            printf '%s' '${{ secrets.AGE_DEPLOY_KEY_B64 }}' | base64 -d > keys/age-deploy.key
-            chmod 600 keys/age-deploy.key
-            grep -q 'AGE-SECRET-KEY-' keys/age-deploy.key
-            echo "age-deploy.key ready ($(wc -c < keys/age-deploy.key) bytes)"
-            ok=0
-            for i in 1 2 3 4 5; do
-              if git pull --ff-only; then ok=1; break; fi
-              echo "git pull failed (attempt $i); retrying…" >&2
-              sleep $((i * 5))
-            done
-            [[ "$ok" == 1 ]] || { echo "git pull failed" >&2; exit 1; }
-            export SKIP_GIT_PULL=1
-            ./deploy.sh
+          # One logical flow; retries live in deploy.sh. Avoid complex multiline + appleboy envs.
+          script: "set -euo pipefail; cd /home/biga/rashod; test -s keys/age-deploy.key; grep -q AGE-SECRET-KEY- keys/age-deploy.key; echo age-key-ok; git pull --ff-only || git pull --ff-only || git pull --ff-only; export SKIP_GIT_PULL=1; ./deploy.sh"

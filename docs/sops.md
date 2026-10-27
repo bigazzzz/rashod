@@ -34,8 +34,9 @@ sops secrets.enc.yaml
 
 ## Деплой
 
-CI подставляет secret `AGE_DEPLOY_KEY_B64` (base64 от `keys/age-deploy.key`) в SSH-скрипт,
-пишет `keys/age-deploy.key` на сервере, затем `deploy.sh` расшифровывает `secrets.enc.yaml` → `.env.secrets`.
+CI декодирует secret `AGE_DEPLOY_KEY_B64` (base64 от `keys/age-deploy.key`), копирует файл на сервер
+через SCP в `keys/age-deploy.key`, затем по SSH запускает `deploy.sh`, который расшифровывает
+`secrets.enc.yaml` → `.env.secrets`.
 
 На сервере нужен `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …).
 
