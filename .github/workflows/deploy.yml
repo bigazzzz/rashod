@@ -47,7 +47,6 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
-          # Single-line base64 of keys/age-deploy.key (multiline SSH env breaks).
           AGE_DEPLOY_KEY_B64: ${{ secrets.AGE_DEPLOY_KEY_B64 }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -57,9 +56,20 @@ jobs:
           script: |
             set -euo pipefail
             cd /home/biga/rashod
+            git pull --ff-only
             if [[ -z "${AGE_DEPLOY_KEY_B64:-}" ]]; then
               echo "error: AGE_DEPLOY_KEY_B64 GitHub secret is empty" >&2
               exit 1
             fi
-            export AGE_DEPLOY_KEY_B64
+            mkdir -p keys
+            umask 077
+            echo "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
+            chmod 600 keys/age-deploy.key
+            if ! grep -q 'AGE-SECRET-KEY-' keys/age-deploy.key; then
+              echo "error: decoded age-deploy.key looks invalid" >&2
+              wc -c keys/age-deploy.key >&2
+              exit 1
+            fi
+            echo "age-deploy.key ready ($(wc -c < keys/age-deploy.key) bytes)"
+            export SKIP_GIT_PULL=1
             ./deploy.sh

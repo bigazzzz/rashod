@@ -2,11 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# After git pull, re-exec so we always run the updated script from disk.
-git pull --ff-only
-if [[ "${_DEPLOY_BOOTSTRAPPED:-}" != "1" ]]; then
-  export _DEPLOY_BOOTSTRAPPED=1
-  exec bash "$0" "$@"
+if [[ "${SKIP_GIT_PULL:-}" != "1" ]]; then
+  git pull --ff-only
 fi
 
 if [[ ! -f .env ]]; then
@@ -15,13 +12,13 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-# CI injects AGE_DEPLOY_KEY_B64 (single-line); materialize the private key file.
+# Optional: CI may pass AGE_DEPLOY_KEY_B64 (single-line base64 of age-deploy.key).
 if [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
   mkdir -p keys
   umask 077
   echo "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
   chmod 600 keys/age-deploy.key
-  echo "Wrote keys/age-deploy.key from AGE_DEPLOY_KEY_B64"
+  echo "Wrote keys/age-deploy.key ($(wc -c < keys/age-deploy.key) bytes)"
 fi
 
 ensure_sops() {
@@ -43,7 +40,7 @@ ensure_sops
 
 KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
 COMPOSE_ENV=(--env-file .env)
-if [[ -f "$KEY_FILE" ]]; then
+if [[ -f "$KEY_FILE" ]] && [[ -s "$KEY_FILE" ]]; then
   SOPS_AGE_KEY_FILE="$KEY_FILE" ./scripts/sops-decrypt-env.sh
   COMPOSE_ENV+=(--env-file .env.secrets)
 elif [[ -f .env.secrets ]]; then
