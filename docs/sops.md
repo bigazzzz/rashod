@@ -34,20 +34,18 @@ sops secrets.enc.yaml
 
 ## Деплой
 
-CI передаёт приватный **deploy**-ключ как secret `AGE_DEPLOY_KEY_B64`
-(base64 одной строкой — так надёжнее через SSH env). `deploy.sh` пишет
-`keys/age-deploy.key` и расшифровывает `secrets.enc.yaml`.
+CI расшифровывает `secrets.enc.yaml` на runner’е (secret `AGE_DEPLOY_KEY_B64`)
+и по SSH передаёт однострочные `OPS_TOKEN` / `MCP_TOKEN` → файл `.env.secrets`
+на сервере. Приватный age-ключ на сервер не копируется.
 
-На сервере также нужны:
+На сервере нужен `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …).
 
-1. `sops` в `PATH` (если нет — `deploy.sh` ставит бинарник в `~/.local/bin`)
-2. `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …)
-
-Задать secret один раз:
+Задать secret один раз (локально):
 
 ```bash
 base64 -w0 < keys/age-deploy.key | gh secret set AGE_DEPLOY_KEY_B64
 ```
+
 
 
 
