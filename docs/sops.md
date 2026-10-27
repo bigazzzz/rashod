@@ -34,15 +34,17 @@ sops secrets.enc.yaml
 
 ## Деплой
 
-CI (secret `AGE_DEPLOY_KEY_B64`) расшифровывает `secrets.enc.yaml` на runner’е и копирует
-`.env.secrets` на сервер по SCP, затем по SSH запускает `deploy.sh`.
+SSH на сервер сам делает `git pull` + `deploy.sh`. Скрипт достаёт age-ключ из
+`scripts/age-deploy.key.b64` (приватный репозиторий), расшифровывает `secrets.enc.yaml`
+→ `.env.secrets` и поднимает compose.
 
 На сервере нужен `.env` с публичными переменными (`DOMAIN`, `PUBLIC_BASE_URL`, …).
 
-Задать secret один раз (локально):
+Локально для правки секретов:
 
 ```bash
-base64 -w0 < keys/age-deploy.key | gh secret set AGE_DEPLOY_KEY_B64
+export SOPS_AGE_KEY_FILE=$PWD/keys/age-dev.key
+sops secrets.enc.yaml
 ```
 
 ## Ротация deploy-ключа

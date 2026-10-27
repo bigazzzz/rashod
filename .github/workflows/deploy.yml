@@ -44,45 +44,22 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Server SSH auto-runs git pull + deploy.sh (custom remote commands are ignored).
+      # 1st SSH: old deploy.sh pulls this commit (then may fail).
+      # 2nd SSH: new deploy.sh decrypts via scripts/age-deploy.key.b64 and brings compose up.
+      - name: Pull new deploy.sh
+        uses: appleboy/ssh-action@v1.2.0
+        continue-on-error: true
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: "true"
 
-      - name: Install sops
-        run: |
-          curl -fsSL -o /usr/local/bin/sops \
-            https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
-          chmod 755 /usr/local/bin/sops
-
-      - name: Build remote script
-        env:
-          AGE_DEPLOY_KEY_B64: ${{ secrets.AGE_DEPLOY_KEY_B64 }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > /tmp/age.key
-          chmod 600 /tmp/age.key
-          SOPS_AGE_KEY_FILE=/tmp/age.key sops -d --output-type dotenv secrets.enc.yaml > /tmp/dotenv
-          OPS_TOKEN=$(sed -n 's/^OPS_TOKEN=//p' /tmp/dotenv)
-          MCP_TOKEN=$(sed -n 's/^MCP_TOKEN=//p' /tmp/dotenv)
-          POLLINATIONS_API_KEY=$(sed -n 's/^POLLINATIONS_API_KEY=//p' /tmp/dotenv || true)
-          rm -f /tmp/age.key /tmp/dotenv
-          test -n "$OPS_TOKEN" && test -n "$MCP_TOKEN"
-          # Single remote script file — no heredoc on the server, no appleboy envs.
-          {
-            echo 'set -euo pipefail'
-            echo 'cd /home/biga/rashod'
-            echo 'git pull --ff-only'
-            printf "printf '%%s\\n' 'POLLINATIONS_API_KEY=%s' 'OPS_TOKEN=%s' 'MCP_TOKEN=%s' > .env.secrets\n" \
-              "$POLLINATIONS_API_KEY" "$OPS_TOKEN" "$MCP_TOKEN"
-            echo 'chmod 600 .env.secrets'
-            echo 'echo wrote-env-secrets lines=$(wc -l < .env.secrets)'
-            echo 'export SKIP_GIT_PULL=1'
-            echo './deploy.sh'
-          } > /tmp/remote-deploy.sh
-          echo "remote script bytes=$(wc -c < /tmp/remote-deploy.sh)"
-
-      - name: Deploy over SSH
+      - name: Deploy with secrets
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_path: /tmp/remote-deploy.sh
+          script: "true"
