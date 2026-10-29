@@ -1,4 +1,4 @@
-"""Read-only internal ops endpoints for the MCP server (token-gated)."""
+"""Token-gated internal ops endpoints for the MCP server."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ import os
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from prometheus_client import REGISTRY
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
@@ -20,8 +21,10 @@ from app.metrics import (
     expenses_added_total,
 )
 from app.models import Event, Expense
-from app.og_image import OG_IMAGE_DIR, background_path_for
-from app.routes.events import PUBLIC_BASE_URL
+from app.og_image import OG_IMAGE_DIR, background_path_for, generate_and_store_background
+from app.routes.events import PUBLIC_BASE_URL, _get_event_or_404
+from app.routes.expenses import build_expense
+from app.schemas import EventCreate
 
 router = APIRouter(prefix="/internal/ops", tags=["ops"], include_in_schema=False)
 
@@ -32,6 +35,34 @@ _APP_COUNTERS = (
     expenses_added_total,
     events_deleted_total,
 )
+
+
+def _public_base(request: Request) -> str:
+    return PUBLIC_BASE_URL.rstrip("/") if PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
+
+
+def _validation_message(exc: ValidationError) -> str:
+    msg = exc.errors()[0]["msg"]
+    prefix = "Value error, "
+    if msg.startswith(prefix):
+        return msg[len(prefix) :]
+    return msg
+
+
+class EventWriteIn(BaseModel):
+    name: str = ""
+
+
+class ExpenseWriteIn(BaseModel):
+    payer_name: str = ""
+    description: str = ""
+    amount: str | int | float = "0"
+
+
+def _amount_as_form_text(amount: str | int | float) -> str:
+    if isinstance(amount, bool) or not isinstance(amount, (str, int, float)):
+        return ""
+    return str(amount)
 
 
 def require_ops_token(
@@ -188,3 +219,63 @@ def ops_public_checks(request: Request):
                 }
             )
     return {"checks": checks}
+
+
+@router.post("/events", dependencies=[Depends(require_ops_token)])
+def ops_create_event(
+    body: EventWriteIn,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    try:
+        data = EventCreate(name=body.name)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=_validation_message(exc)) from exc
+
+    event = crud.create_event(db, data.name)
+    events_created_total.inc()
+    background_tasks.add_task(generate_and_store_background, event.slug, event.name)
+    base = _public_base(request)
+    return {
+        "slug": event.slug,
+        "name": event.name,
+        "urls": {
+            "event": f"{base}/e/{event.slug}",
+            "results": f"{base}/r/{event.slug}",
+        },
+    }
+
+
+@router.post("/events/{slug}/expenses", dependencies=[Depends(require_ops_token)])
+def ops_add_expense(
+    slug: str,
+    body: ExpenseWriteIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _get_event_or_404(db, slug)
+    expenses = crud.get_expenses(db, event)
+    data, error = build_expense(
+        expenses,
+        body.payer_name,
+        body.description,
+        _amount_as_form_text(body.amount),
+    )
+    if error or data is None:
+        detail = error or "Некорректная сумма"
+        prefix = "Value error, "
+        if detail.startswith(prefix):
+            detail = detail[len(prefix) :]
+        raise HTTPException(status_code=400, detail=detail)
+
+    expense = crud.add_expense(db, event, data.payer_name, data.description, data.amount)
+    expenses_added_total.inc()
+    base = _public_base(request)
+    return {
+        "slug": event.slug,
+        "payer_name": expense.payer_name,
+        "description": expense.description,
+        "amount": f"{expense.amount:.2f}",
+        "urls": {"event": f"{base}/e/{event.slug}"},
+    }

@@ -48,7 +48,6 @@ services:
     environment:
       OPS_BASE_URL: http://web:8000
       OPS_TOKEN: ${OPS_TOKEN:-}
-      MCP_TOKEN: ${MCP_TOKEN:-}
       MCP_HOST: 0.0.0.0
       MCP_PORT: "8080"
       MCP_RATE_LIMIT_PER_MINUTE: ${MCP_RATE_LIMIT_PER_MINUTE:-60}

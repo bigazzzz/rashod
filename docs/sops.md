@@ -18,8 +18,7 @@
 | Переменная | Назначение |
 |------------|------------|
 | `POLLINATIONS_API_KEY` | опциональный ключ Pollinations |
-| `OPS_TOKEN` | `/internal/ops/*` |
-| `MCP_TOKEN` | Bearer для `/mcp` |
+| `OPS_TOKEN` | `/internal/ops/*` (только между контейнерами) |
 | `ADMIN_PASSWORD` | пароль входа в `/admin` |
 | `ADMIN_SESSION_SECRET` | подпись cookie-сессии админки (отдельный random) |
 

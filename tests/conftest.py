@@ -31,6 +31,10 @@ def disable_pollinations_network(monkeypatch):
         "app.routes.events.generate_and_store_background",
         lambda slug, name: None,
     )
+    monkeypatch.setattr(
+        "app.routes.ops.generate_and_store_background",
+        lambda slug, name: None,
+    )
 
 
 @pytest.fixture()

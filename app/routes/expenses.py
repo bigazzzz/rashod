@@ -27,23 +27,15 @@ def _next_auto_payer_name(expenses) -> str:
     return f"User{max_n + 1:03d}"
 
 
-@router.post("/e/{slug}/expenses")
-@limiter.limit("30/minute")
-def create_expense(
-    request: Request,
-    slug: str,
-    payer_name: str = Form(""),
-    description: str = Form(""),
-    amount: str = Form(""),
-    db: Session = Depends(get_db),
-):
-    event = _get_event_or_404(db, slug)
-    expenses = crud.get_expenses(db, event)
-
-    resolved_name = payer_name.strip() or _next_auto_payer_name(expenses)
-    amount_raw = amount.strip() or "0"
-
-    error = None
+def build_expense(
+    expenses,
+    payer_name: str,
+    description: str,
+    amount: str,
+) -> tuple[ExpenseCreate | None, str | None]:
+    """Same rules as the public expense form. Returns (data, error)."""
+    resolved_name = (payer_name or "").strip() or _next_auto_payer_name(expenses)
+    amount_raw = (amount or "").strip() or "0"
     try:
         parsed_amount = Decimal(amount_raw.replace(",", "."))
         resolved_description = "" if parsed_amount == 0 else description
@@ -58,8 +50,24 @@ def create_expense(
             if isinstance(exc, ValidationError)
             else "Некорректная сумма"
         )
+        return None, error
+    return data, None
 
-    if error:
+
+@router.post("/e/{slug}/expenses")
+@limiter.limit("30/minute")
+def create_expense(
+    request: Request,
+    slug: str,
+    payer_name: str = Form(""),
+    description: str = Form(""),
+    amount: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    event = _get_event_or_404(db, slug)
+    expenses = crud.get_expenses(db, event)
+    data, error = build_expense(expenses, payer_name, description, amount)
+    if error or data is None:
         return render_event_page(request, db, event, error=error, status_code=400)
 
     crud.add_expense(db, event, data.payer_name, data.description, data.amount)

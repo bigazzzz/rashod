@@ -130,3 +130,62 @@ def test_ops_metrics_summary_and_public_checks(client, monkeypatch):
     for item in payload["checks"]:
         assert "status_code" in item
         assert "latency_ms" in item
+
+
+def test_ops_create_event_and_expense(client, monkeypatch):
+    import app.routes.ops as ops
+
+    monkeypatch.setattr(ops, "OPS_TOKEN", "secret-ops")
+    monkeypatch.setattr(ops, "PUBLIC_BASE_URL", "https://porovnu.su")
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        ops,
+        "generate_and_store_background",
+        lambda slug, name: calls.append((slug, name)),
+    )
+    headers = {"X-Ops-Token": "secret-ops"}
+
+    denied = client.post("/internal/ops/events", json={"name": "Пикник"})
+    assert denied.status_code == 401
+
+    empty = client.post("/internal/ops/events", json={"name": "   "}, headers=headers)
+    assert empty.status_code == 400
+    assert "Название события не может быть пустым" in empty.json()["detail"]
+
+    created = client.post("/internal/ops/events", json={"name": " Пикник "}, headers=headers)
+    assert created.status_code == 200
+    body = created.json()
+    slug = body["slug"]
+    assert body["name"] == "Пикник"
+    assert body["urls"]["event"] == f"https://porovnu.su/e/{slug}"
+    assert body["urls"]["results"] == f"https://porovnu.su/r/{slug}"
+    assert calls == [(slug, "Пикник")]
+
+    zero = client.post(
+        f"/internal/ops/events/{slug}/expenses",
+        json={"amount": "0", "description": "не должно сохраниться", "payer_name": ""},
+        headers=headers,
+    )
+    assert zero.status_code == 200
+    assert zero.json()["payer_name"] == "User001"
+    assert zero.json()["description"] == ""
+    assert zero.json()["amount"] == "0.00"
+    assert zero.json()["urls"]["event"] == f"https://porovnu.su/e/{slug}"
+
+    paid = client.post(
+        f"/internal/ops/events/{slug}/expenses",
+        json={"amount": "12,50", "description": " такси ", "payer_name": "Аня"},
+        headers=headers,
+    )
+    assert paid.status_code == 200
+    assert paid.json()["payer_name"] == "Аня"
+    assert paid.json()["description"] == "такси"
+    assert paid.json()["amount"] == "12.50"
+
+    negative = client.post(
+        f"/internal/ops/events/{slug}/expenses",
+        json={"amount": "-1", "payer_name": "Аня"},
+        headers=headers,
+    )
+    assert negative.status_code == 400
+    assert "отрицательн" in negative.json()["detail"]

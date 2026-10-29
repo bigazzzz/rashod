@@ -1,29 +1,18 @@
-# MCP ops-сервер Поровну
+# MCP Поровну
 
-Удалённый read-only MCP для Cursor: метрики, health, метаданные событий. Без записи данных и без отзывов.
+Публичный MCP: создать событие и добавить трату. Отдельный ключ не нужен.
 
-## Токены
+Адрес: `https://porovnu.su/mcp`
 
-`OPS_TOKEN` и `MCP_TOKEN` хранятся в **SOPS** (`secrets.enc.yaml`), не в открытом `.env`.  
-См. [docs/sops.md](sops.md).
+Запись делает контейнер MCP во внутреннее API сайта. Снаружи это API не открыто.
 
-- `OPS_TOKEN` — заголовок `X-Ops-Token` на `/internal/ops/*` внутри Docker-сети.
-- `MCP_TOKEN` — `Authorization: Bearer …` на `https://porovnu.su/mcp`.
-
-После `./scripts/sops-decrypt-env.sh` значения попадают в `.env.secrets` для compose.
-
-## Cursor (remote MCP)
-
-В конфиге MCP клиента:
+## Cursor
 
 ```json
 {
   "mcpServers": {
-    "porovnu-ops": {
-      "url": "https://porovnu.su/mcp",
-      "headers": {
-        "Authorization": "Bearer ВАШ_MCP_TOKEN"
-      }
+    "porovnu": {
+      "url": "https://porovnu.su/mcp"
     }
   }
 }
@@ -33,23 +22,16 @@
 
 | Tool | Что делает |
 |------|------------|
-| `health` | Версия, БД, OG dir, флаги конфига (без секретов) |
-| `site_stats` | Число событий/трат/OG, уникальные имена участников (не аккаунты) + counters |
-| `metrics_summary` | Урезанный снимок Prometheus |
-| `event_info` | Мета события по slug (без сумм и имён плательщиков) |
-| `public_checks` | Статус `/healthz`, `/`, `/og/site.jpg` |
+| `create_event` | Событие по названию. В ответе slug и ссылки на страницу и на расчёт |
+| `add_expense` | Трата в событии: сумма, назначение, имя плательщика. Пустое имя — User001, User002, … Сумма 0 очищает назначение |
+
+Чужие суммы и имена тулзы не отдают.
+
+Лимит запросов к `/mcp` — по IP, по умолчанию 60 в минуту (`MCP_RATE_LIMIT_PER_MINUTE`).
 
 ## Smoke
 
 ```bash
-# Ops API (из контейнера web или с токеном с хоста через внутренний порт — только внутри сети)
-curl -sS -H "X-Ops-Token: $OPS_TOKEN" http://127.0.0.1:8000/internal/ops/health
-
-# MCP без токена → 401
-curl -sS -o /dev/null -w '%{http_code}\n' https://porovnu.su/mcp
-
-# MCP с токеном (код не 401)
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "Authorization: Bearer $MCP_TOKEN" \
-  https://porovnu.su/mcp
+# без токена это не 401 и не 503
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST https://porovnu.su/mcp
 ```

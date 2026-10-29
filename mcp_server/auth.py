@@ -1,4 +1,4 @@
-"""Bearer auth and simple per-IP rate limiting for the MCP HTTP transport."""
+"""Per-IP rate limiting for the public MCP HTTP transport."""
 
 from __future__ import annotations
 
@@ -10,20 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-MCP_TOKEN = (os.environ.get("MCP_TOKEN") or "").strip()
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("MCP_RATE_LIMIT_PER_MINUTE") or "60")
-
-
-class BearerAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
-        if not MCP_TOKEN:
-            return JSONResponse({"error": "MCP disabled (MCP_TOKEN unset)"}, status_code=503)
-
-        auth = request.headers.get("authorization") or ""
-        scheme, _, token = auth.partition(" ")
-        if scheme.lower() != "bearer" or token != MCP_TOKEN:
-            return JSONResponse({"error": "Unauthorized"}, status_code=401)
-        return await call_next(request)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

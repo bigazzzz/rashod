@@ -15,7 +15,7 @@ sops secrets.enc.yaml
 
 После деплоя / `sops-decrypt-env.sh` переменные попадают в `.env.secrets` и в контейнер `web`.
 
-`OPS_TOKEN` / `MCP_TOKEN` к админке не относятся.
+`OPS_TOKEN` к админке не относится.
 
 ## Возможности
 
