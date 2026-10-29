@@ -33,24 +33,23 @@ ensure_sops() {
   export PATH="$HOME/.local/bin:$PATH"
 }
 
-# Prefer existing dotenv; else decrypt secrets.enc.yaml with deploy age key.
-if [[ ! -f .env.secrets || ! -s .env.secrets ]]; then
-  mkdir -p keys
-  if [[ ! -s keys/age-deploy.key ]]; then
-    if [[ -f scripts/age-deploy.key.b64 ]]; then
-      # Private-repo bootstrap so server auto-deploy can decrypt without SSH file upload.
-      base64 -d < scripts/age-deploy.key.b64 > keys/age-deploy.key
-      chmod 600 keys/age-deploy.key
-      echo "Restored keys/age-deploy.key from scripts/age-deploy.key.b64"
-    elif [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
-      printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
-      chmod 600 keys/age-deploy.key
-    fi
+# Always re-decrypt: .env.secrets is derived from secrets.enc.yaml.
+# Skipping when the file already exists leaves new keys (e.g. admin) unset.
+mkdir -p keys
+if [[ ! -s keys/age-deploy.key ]]; then
+  if [[ -f scripts/age-deploy.key.b64 ]]; then
+    # Private-repo bootstrap so server auto-deploy can decrypt without SSH file upload.
+    base64 -d < scripts/age-deploy.key.b64 > keys/age-deploy.key
+    chmod 600 keys/age-deploy.key
+    echo "Restored keys/age-deploy.key from scripts/age-deploy.key.b64"
+  elif [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
+    printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
+    chmod 600 keys/age-deploy.key
   fi
-  if [[ -s keys/age-deploy.key ]]; then
-    ensure_sops
-    SOPS_AGE_KEY_FILE="$PWD/keys/age-deploy.key" ./scripts/sops-decrypt-env.sh
-  fi
+fi
+if [[ -s keys/age-deploy.key ]]; then
+  ensure_sops
+  SOPS_AGE_KEY_FILE="$PWD/keys/age-deploy.key" ./scripts/sops-decrypt-env.sh
 fi
 
 if [[ -f .env.secrets && -s .env.secrets ]]; then
