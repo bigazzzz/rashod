@@ -1,0 +1,131 @@
+{% extends "admin/base.html" %}
+{% block title %}Дашборд — админ Поровну{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+{% block content %}
+<h1>Дашборд</h1>
+
+<section class="admin-section">
+  <h2>Health</h2>
+  <ul class="admin-kv">
+    <li><span>status</span><strong>{{ health.status }}</strong></li>
+    <li><span>version</span><strong>{{ health.version }}</strong></li>
+    <li><span>db_ok</span><strong>{{ health.db_ok }}</strong></li>
+    <li><span>og_dir</span><strong>{{ health.og_dir_exists }}</strong></li>
+    <li><span>pollinations</span><strong>{{ health.pollinations_configured }}</strong></li>
+    <li><span>retention_days</span><strong>{{ health.retention_days }}</strong></li>
+    <li><span>public_base_url</span><strong>{{ health.public_base_url_set }}</strong></li>
+  </ul>
+  <form method="post" action="/admin/cleanup" class="admin-inline-form" onsubmit="return confirm('Запустить cleanup по retention?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn btn-muted">Запустить cleanup</button>
+  </form>
+</section>
+
+<section class="admin-section">
+  <h2>Счётчики</h2>
+  <ul class="admin-kv">
+    <li><span>events</span><strong>{{ stats.events }}</strong></li>
+    <li><span>expenses</span><strong>{{ stats.expenses }}</strong></li>
+    <li><span>og_files</span><strong>{{ stats.og_files }}</strong></li>
+    {% for name, value in stats.counters.items() %}
+    <li><span>{{ name }}</span><strong>{{ value | int }}</strong></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="admin-section">
+  <h2>Создания мероприятий</h2>
+  <p class="admin-period">
+    {% for p in chart_periods %}
+      {% if p == chart.days %}
+      <strong>{{ p }}д</strong>
+      {% else %}
+      <a href="/admin/?days={{ p }}">{{ p }}д</a>
+      {% endif %}
+    {% endfor %}
+    <span class="muted">· всего за период: {{ chart.total }} · {{ chart.granularity }}</span>
+  </p>
+  <canvas id="eventsChart" height="120" aria-label="График созданий событий"></canvas>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const labels = {{ chart.bucket_labels | tojson }};
+      const values = {{ chart.bucket_counts | tojson }};
+      const ctx = document.getElementById("eventsChart");
+      if (!ctx || typeof Chart === "undefined") return;
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "События",
+            data: values,
+            backgroundColor: "rgba(240, 184, 78, 0.55)",
+            borderColor: "rgba(240, 184, 78, 0.9)",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 0, color: "#b6a488" }, grid: { color: "rgba(246,236,217,0.08)" } },
+            y: { beginAtZero: true, ticks: { precision: 0, color: "#b6a488" }, grid: { color: "rgba(246,236,217,0.08)" } }
+          }
+        }
+      });
+    });
+  </script>
+</section>
+
+<section class="admin-section">
+  <h2>Топ-20 событий (по числу трат)</h2>
+  {% if top_events %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Название</th><th>Трат</th><th>Создано</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for row in top_events %}
+        <tr>
+          <td>{{ row.rank }}</td>
+          <td><a href="/admin/events/{{ row.slug }}">{{ row.name }}</a></td>
+          <td>{{ row.expense_count }}</td>
+          <td>{{ row.created_at }}</td>
+          <td><a href="/e/{{ row.slug }}">/e</a> · <a href="/r/{{ row.slug }}">/r</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Пока нет событий.</p>
+  {% endif %}
+</section>
+
+<section class="admin-section">
+  <h2>Топ-20 назначений платежа</h2>
+  {% if top_descriptions %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Назначение</th><th>Раз</th></tr>
+      </thead>
+      <tbody>
+        {% for row in top_descriptions %}
+        <tr>
+          <td>{{ row.rank }}</td>
+          <td>{{ row.description }}</td>
+          <td>{{ row.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Пока нет назначений.</p>
+  {% endif %}
+</section>
+{% endblock %}

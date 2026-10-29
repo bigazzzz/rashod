@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% block title %}События — админ Поровну{% endblock %}
+{% block content %}
+<h1>События</h1>
+<form method="get" action="/admin/events" class="admin-search">
+  <label>
+    Поиск
+    <input type="search" name="q" value="{{ q }}" placeholder="имя или slug">
+  </label>
+  <button type="submit">Найти</button>
+</form>
+<p class="muted">Найдено: {{ total }}</p>
+{% if rows %}
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Название</th><th>Slug</th><th>Трат</th><th>Создано</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for event, expense_count in rows %}
+      <tr>
+        <td><a href="/admin/events/{{ event.slug }}">{{ event.name }}</a></td>
+        <td><code>{{ event.slug }}</code></td>
+        <td>{{ expense_count }}</td>
+        <td>{{ event.created_at }}</td>
+        <td>
+          <a href="{{ base_url }}/e/{{ event.slug }}">открыть</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if pages > 1 %}
+<p class="admin-pager">
+  {% if page > 1 %}
+  <a href="/admin/events?q={{ q | urlencode }}&page={{ page - 1 }}">←</a>
+  {% endif %}
+  стр. {{ page }} / {{ pages }}
+  {% if page < pages %}
+  <a href="/admin/events?q={{ q | urlencode }}&page={{ page + 1 }}">→</a>
+  {% endif %}
+</p>
+{% endif %}
+{% else %}
+<p class="muted">Ничего не найдено.</p>
+{% endif %}
+{% endblock %}

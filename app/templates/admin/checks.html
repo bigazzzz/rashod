@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}Smoke — админ Поровну{% endblock %}
+{% block content %}
+<h1>Public checks</h1>
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Path</th><th>Status</th><th>ms</th><th>Error</th></tr>
+    </thead>
+    <tbody>
+      {% for c in checks %}
+      <tr>
+        <td><code>{{ c.path }}</code></td>
+        <td>{{ c.status_code }}</td>
+        <td>{{ c.latency_ms }}</td>
+        <td>{{ c.error or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p><a href="/admin/">← дашборд</a></p>
+{% endblock %}

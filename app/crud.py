@@ -2,6 +2,7 @@ import secrets
 from datetime import datetime
 from decimal import Decimal
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Event, Expense
@@ -64,6 +65,12 @@ def delete_expense(db: Session, event: Event, expense_id: int) -> bool:
     return True
 
 
+def delete_event(db: Session, event: Event) -> None:
+    """Delete a single event (expenses cascade)."""
+    db.delete(event)
+    db.commit()
+
+
 def delete_events_older_than(db: Session, cutoff: datetime) -> int:
     """Delete events created before `cutoff` (expenses go with them via
     cascade). Returns how many events were deleted."""
@@ -72,3 +79,38 @@ def delete_events_older_than(db: Session, cutoff: datetime) -> int:
         db.delete(event)
     db.commit()
     return len(old_events)
+
+
+def list_events(
+    db: Session,
+    *,
+    q: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+) -> tuple[list[tuple[Event, int]], int]:
+    """Return (event, expense_count) rows plus total matching count."""
+    filters = []
+    if q:
+        needle = f"%{q.strip()}%"
+        filters.append((Event.name.ilike(needle)) | (Event.slug.ilike(needle)))
+
+    total_q = db.query(func.count(Event.id))
+    for f in filters:
+        total_q = total_q.filter(f)
+    total = int(total_q.scalar() or 0)
+
+    expense_count = func.count(Expense.id).label("expense_count")
+    query = (
+        db.query(Event, expense_count)
+        .outerjoin(Expense, Expense.event_id == Event.id)
+        .group_by(Event.id)
+    )
+    for f in filters:
+        query = query.filter(f)
+    rows = (
+        query.order_by(Event.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [(event, int(count or 0)) for event, count in rows], total

@@ -14,6 +14,9 @@ os.environ["EVENT_RETENTION_DAYS"] = "365"
 os.environ["OG_IMAGE_DIR"] = os.path.join(_tmp_dir, "og")
 os.environ["POLLINATIONS_API_KEY"] = ""
 os.environ["OPS_TOKEN"] = ""
+os.environ["ADMIN_PASSWORD"] = ""
+os.environ["ADMIN_SESSION_SECRET"] = ""
+os.environ["ADMIN_COOKIE_SECURE"] = "0"
 os.makedirs(os.environ["OG_IMAGE_DIR"], exist_ok=True)
 
 from fastapi.testclient import TestClient  # noqa: E402

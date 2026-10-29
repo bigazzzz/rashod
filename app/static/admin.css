@@ -1,0 +1,119 @@
+.container--admin {
+  max-width: 960px;
+}
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(240, 184, 78, 0.25);
+}
+
+.admin-nav__logout {
+  margin-left: auto;
+  display: inline;
+}
+
+.admin-nav__logout button,
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(240, 184, 78, 0.35);
+  background: transparent;
+  color: var(--gold);
+}
+
+.btn-muted {
+  color: var(--card-text-dim);
+  border-color: rgba(182, 164, 136, 0.35);
+}
+
+.btn-danger {
+  color: #ffb4a2;
+  border-color: rgba(217, 122, 77, 0.55);
+  background: rgba(58, 20, 32, 0.55);
+  margin-top: 1rem;
+}
+
+.admin-flash {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  margin: 0 0 1rem;
+}
+
+.admin-flash--ok {
+  background: rgba(76, 140, 90, 0.2);
+  border: 1px solid rgba(120, 200, 130, 0.35);
+}
+
+.admin-flash--err {
+  background: rgba(180, 60, 60, 0.2);
+  border: 1px solid rgba(255, 120, 100, 0.35);
+}
+
+.admin-section {
+  margin-bottom: 2rem;
+}
+
+.admin-kv {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.admin-kv li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.55rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.admin-kv span {
+  color: var(--card-text-dim);
+}
+
+.admin-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  align-items: baseline;
+}
+
+.admin-period a {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--card-text-dim);
+}
+
+.admin-login label,
+.admin-search label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.admin-inline-form {
+  margin: 0;
+}
+
+.admin-pager {
+  margin-top: 1rem;
+}
+
+code {
+  font-size: 0.9em;
+  word-break: break-all;
+}

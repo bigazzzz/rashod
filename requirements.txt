@@ -10,3 +10,4 @@ prometheus-client==0.25.0
 slowapi==0.1.10
 python-dotenv==1.0.1
 Pillow==11.1.0
+itsdangerous==2.2.0

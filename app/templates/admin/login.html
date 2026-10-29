@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% block title %}Вход — админ Поровну{% endblock %}
+{% block content %}
+<h1>Админ</h1>
+<p class="muted">Вход только для оператора.</p>
+<form method="post" action="/admin/login" class="admin-login">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>
+    Пароль
+    <input type="password" name="password" autocomplete="current-password" required autofocus>
+  </label>
+  <button type="submit">Войти</button>
+</form>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ event.name }} — админ{% endblock %}
+{% block content %}
+<h1>{{ event.name }}</h1>
+<ul class="admin-kv">
+  <li><span>slug</span><strong><code>{{ event.slug }}</code></strong></li>
+  <li><span>created_at</span><strong>{{ event.created_at }}</strong></li>
+  <li><span>expense_count</span><strong>{{ expense_count }}</strong></li>
+  <li><span>og_background</span><strong>{{ has_og_background }}</strong></li>
+</ul>
+<p>
+  <a href="{{ urls.event }}">Страница события</a> ·
+  <a href="{{ urls.results }}">Результаты</a> ·
+  <a href="{{ urls.og }}">OG</a>
+</p>
+<form method="post" action="/admin/events/{{ event.slug }}/delete" onsubmit="return confirm('Удалить событие и все траты безвозвратно?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="btn btn-danger">Удалить событие</button>
+</form>
+<p><a href="/admin/events">← к списку</a></p>
+{% endblock %}

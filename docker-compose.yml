@@ -20,6 +20,10 @@ services:
       POLLINATIONS_API_KEY: ${POLLINATIONS_API_KEY:-}
       # Shared with mcp. Empty = /internal/ops disabled (404).
       OPS_TOKEN: ${OPS_TOKEN:-}
+      # Browser admin at /admin. Both required or /admin returns 404.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-}
+      ADMIN_COOKIE_SECURE: ${ADMIN_COOKIE_SECURE:-1}
     volumes:
       - db_data:/data
     healthcheck:

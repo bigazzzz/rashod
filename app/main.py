@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,11 +14,12 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.cleanup import run_cleanup_loop
 from app.db import init_db
 from app.rate_limit import limiter
-from app.routes import events, expenses, ops
+from app.routes import admin, events, expenses, ops
 from app.templating import templates
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -38,11 +40,24 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Поровну", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+# Session cookie is only useful for /admin; placeholder secret keeps middleware
+# importable when admin is disabled (routes still 404 without real credentials).
+_session_secret = admin.ADMIN_SESSION_SECRET or "disabled-admin-sessions"
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret,
+    session_cookie="porovnu_admin",
+    max_age=60 * 60 * 12,
+    same_site="lax",
+    https_only=os.environ.get("ADMIN_COOKIE_SECURE", "0") == "1",
+    path="/admin",
+)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(events.router)
 app.include_router(expenses.router)
 app.include_router(ops.router)
+app.include_router(admin.router)
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
@@ -72,4 +87,6 @@ def healthz():
 def robots_txt():
     # Do not Disallow /e/: VK/Telegram/etc. need to fetch event pages for Open Graph.
     # Privacy for search engines is handled via noindex on event templates.
-    return PlainTextResponse("User-agent: *\nAllow: /\n")
+    return PlainTextResponse(
+        "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /admin/\n"
+    )
