@@ -1,4 +1,4 @@
-<section id="transfer-metro" class="metro" aria-label="Схема переводов">
+<section id="transfer-metro" class="metro" aria-label="Переводы">
   <div class="metro-interactive" hidden>
     <header class="metro-head">
       <div class="metro-total" aria-live="polite">
@@ -14,12 +14,12 @@
     </header>
     <div class="metro-bar">
       <div class="metro-switch" role="group" aria-label="Вид переводов">
-        <button type="button" data-view="map" aria-pressed="true">Схема метро</button>
-        <button type="button" data-view="list" aria-pressed="false">Список</button>
+        <button type="button" data-view="list" aria-pressed="true">Список</button>
+        <button type="button" data-view="map" aria-pressed="false">Схема метро</button>
       </div>
       <span class="metro-count"></span>
     </div>
-    <div class="metro-map">
+    <div class="metro-map" hidden>
       <div class="metro-sides"><span>Отправляют</span><span>Получают</span></div>
       <div class="metro-scroll" tabindex="0" aria-label="Маршруты переводов">
         <div class="metro-track">
@@ -32,7 +32,7 @@
   </div>
   <ul class="metro-list">
     {% for t in transfers %}
-    <li data-from="{{ t.from_person }}" data-to="{{ t.to_person }}" data-kopecks="{{ (t.amount * 100)|int }}">{{ t.from_person }} → {{ t.to_person }}: <strong>{{ "%.2f"|format(t.amount) }} ₽</strong></li>
+    <li data-from="{{ t.from_person }}" data-to="{{ t.to_person }}" data-kopecks="{{ (t.amount * 100)|int }}"><span>{{ t.from_person }} → {{ t.to_person }}:</span> <strong>{{ "%.2f"|format(t.amount) }} ₽</strong></li>
     {% endfor %}
   </ul>
 </section>

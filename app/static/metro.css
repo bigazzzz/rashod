@@ -1,11 +1,8 @@
 .metro {
-  --paper: #f7f3e8;
-  --ink: #232e30;
-  --secondary: #57625d;
-  color-scheme: light;
-  color: var(--ink);
-  background: var(--paper);
-  border: 1px solid #d5cebb;
+  --divider: rgba(248, 236, 217, .15);
+  color: var(--card-text);
+  background: var(--navy-deep);
+  border: 1px solid var(--divider);
   border-radius: 14px;
   overflow: hidden;
   font-family: "Arial", system-ui, sans-serif;
@@ -22,7 +19,7 @@
 .metro-total span, .metro-filter {
   font-size: 13px;
   font-weight: 500;
-  color: var(--secondary);
+  color: var(--card-text-dim);
   overflow-wrap: anywhere;
 }
 .metro-total strong {
@@ -33,17 +30,17 @@
 .metro-filter { max-width: 48%; }
 .metro-filter select {
   background: transparent;
-  color: var(--ink);
-  border: 1px solid #acae9f;
+  color: var(--card-text);
+  border: 1px solid var(--card-text-dim);
   padding: 5px 7px;
   border-radius: 6px;
   min-height: 35px;
   max-width: 100%;
   font: inherit;
 }
-.metro-bar { padding: 0 20px 17px; border-bottom: 1px solid #d2cebf; }
-.metro-switch { display: flex; padding: 3px; border-radius: 8px; background: #e6e3d6; }
-.metro button { color: var(--ink); box-shadow: none; margin: 0; transform: none; transition: none; }
+.metro-bar { padding: 0 20px 17px; border-bottom: 1px solid var(--divider); }
+.metro-switch { display: flex; padding: 3px; border-radius: 8px; background: var(--navy); }
+.metro button { color: var(--card-text); box-shadow: none; margin: 0; transform: none; transition: none; }
 .metro-switch button {
   font: 600 13px/1.2 Arial, sans-serif;
   min-height: 32px;
@@ -51,12 +48,12 @@
   background: transparent;
   border-radius: 5px;
 }
-.metro-switch button[aria-pressed=true] { background: var(--ink); color: #fffdf3; }
-.metro-count { font-size: 12px; color: var(--secondary); }
-.metro-map { border-bottom: 1px solid #d2cebf; background-image: radial-gradient(#cfcbbc .8px, transparent .9px); background-size: 14px 14px; }
+.metro-switch button[aria-pressed=true] { background: var(--gold); color: var(--navy-deep); }
+.metro-count { font-size: 12px; color: var(--card-text-dim); }
+.metro-map { border-bottom: 1px solid var(--divider); background-image: radial-gradient(rgba(248, 236, 217, .14) .8px, transparent .9px); background-size: 14px 14px; }
 .metro-sides {
   padding: 17px 17px 6px;
-  color: var(--secondary);
+  color: var(--card-text-dim);
   font: 600 10px/1.2 Arial, sans-serif;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -68,7 +65,7 @@
 .metro-fare {
   position: absolute; left: 50%; transform: translate(-50%, -50%);
   padding: 2px 6px;
-  background: var(--paper); color: var(--ink); border-radius: 4px;
+  background: var(--navy-deep); color: var(--card-text); border-radius: 4px;
   font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 .metro-fare::after {
@@ -88,15 +85,16 @@
 .metro-station span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .metro-station::after {
   content: ""; box-sizing: border-box; width: 15px; height: 15px; flex: none;
-  border: 4px solid var(--rail, var(--ink)); border-radius: 50%; background: var(--paper);
+  border: 4px solid var(--rail, var(--card-text)); border-radius: 50%; background: var(--navy-deep);
 }
 .metro-from::after { margin-left: 5px; }
 .metro-to::after { order: -1; margin-right: 5px; }
-.metro-station[aria-pressed=true]::after { outline: 2px solid var(--ink); outline-offset: 2px; }
+.metro-station[aria-pressed=true]::after { outline: 2px solid var(--card-text); outline-offset: 2px; }
 .metro .is-muted { opacity: .25; }
-.metro button:focus-visible, .metro select:focus-visible { outline: 2px solid #006c66; outline-offset: 1px; }
+.metro button:focus-visible, .metro select:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .metro .metro-list { margin: 0; padding: 8px 18px 12px; }
-.metro .metro-list li { border: 0; border-bottom: 1px solid #d2cebf; background: transparent; padding: 12px 0; margin: 0; border-radius: 0; }
+.metro .metro-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; overflow-wrap: anywhere; border: 0; border-bottom: 1px solid var(--divider); background: transparent; padding: 12px 0; margin: 0; border-radius: 0; }
+.metro-list strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .metro .metro-list li:last-child { border: 0; }
 @media (max-width: 480px) {
   .metro-head { padding: 16px 12px 15px; }

@@ -18,11 +18,11 @@
   });
   const plural = new Intl.PluralRules("ru");
   const counts = {one: "перевод", few: "перевода", many: "переводов", other: "перевода"};
-  const colors = ["#007f7a", "#c3512e", "#6850a3", "#37729c", "#9b4370", "#577424"];
+  const colors = ["#58c9bc", "#f69a69", "#b49aea", "#78b9f0", "#e78cb5", "#a2c776"];
   const rowHeight = 58;
   const height = payments.length * rowHeight;
   const people = new Map();
-  let view = "map";
+  let view = root.querySelector('[data-view][aria-pressed="true"]').dataset.view;
 
   // Settlement emits each person's transfers consecutively on their side of the map.
   function register(name, side, y) {
