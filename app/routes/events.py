@@ -174,6 +174,7 @@ def _index_context(request: Request, **extra) -> dict:
     return context
 
 
+@router.head("/", include_in_schema=False)
 @router.get("/")
 def index(request: Request):
     return templates.TemplateResponse(request, "index.html", _index_context(request))
@@ -216,6 +217,7 @@ def create_event(
     return RedirectResponse(url=f"/e/{event.slug}", status_code=303)
 
 
+@router.head("/e/{slug}", include_in_schema=False)
 @router.get("/e/{slug}")
 def event_page(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)
@@ -353,6 +355,7 @@ def results_csv(request: Request, slug: str, db: Session = Depends(get_db)):
     )
 
 
+@router.head("/r/{slug}", include_in_schema=False)
 @router.get("/r/{slug}")
 def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
     event = _get_event_or_404(db, slug)

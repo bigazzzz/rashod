@@ -541,3 +541,22 @@ def test_about_page_lists_all_releases_and_privacy(client):
 
     index = client.get("/")
     assert 'href="/about"' in index.text
+
+
+def test_share_pages_support_head(client):
+    slug = create_event(client, "Обложка")
+    for path in ("/", f"/e/{slug}", f"/r/{slug}"):
+        response = client.head(path)
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert not response.content
+    assert client.head("/r/missing").status_code == 404
+
+
+def test_results_share_preview_uses_event_image(client):
+    slug = create_event(client, "Поход")
+    page = client.get(f"/r/{slug}").text
+    assert f'property="og:url" content="http://testserver/r/{slug}"' in page
+    assert f'property="og:image" content="http://testserver/og/{slug}.jpg"' in page
+    assert f'name="twitter:image" content="http://testserver/og/{slug}.jpg"' in page
+    assert 'name="twitter:card" content="summary_large_image"' in page
