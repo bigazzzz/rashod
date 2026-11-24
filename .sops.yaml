@@ -4,5 +4,5 @@
 creation_rules:
   - path_regex: secrets\.enc\.ya?ml$
     age: >-
-      age1650lgrqsvylfnjx6k7293wk0dp803y77rufc4e048apj5q588ctsktrxcx,
+      age1ev30nlgsna4yrr5fef265g2uwfl90zmkhjppp6hna76ehn5l64cq29gs4j,
       age15u676h54ky9gexfmajlfjxdav6ftyc0wxm9uxwuykzkp30z0z9ms60e9r9
