@@ -34,8 +34,8 @@ def test_fetch_sends_full_russian_prompt(monkeypatch, key):
     payload = _tiny_jpeg_bytes()
 
     def respond(request):
+        assert request.url.host == "gen.pollinations.ai"
         if key:
-            assert request.url.host == "gen.pollinations.ai"
             assert request.headers["Authorization"] == f"Bearer {key}"
         else:
             assert "Authorization" not in request.headers

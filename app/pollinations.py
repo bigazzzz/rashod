@@ -25,14 +25,9 @@ async def fetch_cartoon_background(
     key = os.environ.get("POLLINATIONS_API_KEY", "").strip()
     headers = {"Accept": "image/*"}
     if key:
-        endpoint = "https://gen.pollinations.ai/image"
         headers["Authorization"] = f"Bearer {key}"
-    else:
-        endpoint = "https://image.pollinations.ai/prompt"
-    url = f"{endpoint}/{quote(build_prompt(event_name), safe='')}"
+    url = f"https://gen.pollinations.ai/image/{quote(build_prompt(event_name), safe='')}"
     params = {"width": 1200, "height": 630, "nologo": "true"}
-    if not key:
-        params["model"] = "flux"
     try:
         async with asyncio.timeout(timeout):
             async with httpx.AsyncClient(transport=transport, follow_redirects=True, timeout=timeout) as client:
