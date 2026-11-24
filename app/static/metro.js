@@ -8,7 +8,11 @@
   const lines = root.querySelector(".metro-lines");
   const fares = root.querySelector(".metro-fares");
   const stations = root.querySelector(".metro-stations");
-  const select = root.querySelector("[data-person]");
+  const picker = root.querySelector(".metro-picker");
+  const summary = picker.querySelector("summary");
+  const filterValue = summary.querySelector("span");
+  const options = Array.from(picker.querySelectorAll("[data-person]"));
+  let selected = options[0];
   const switches = root.querySelectorAll("[data-view]");
   const payments = Array.from(list.children, item => ({
     from: item.dataset.from, to: item.dataset.to, cents: Number(item.dataset.kopecks), item,
@@ -52,8 +56,8 @@
     label.textContent = person.name;
     station.append(label);
     station.addEventListener("click", () => {
-      select.value = select.value === person.name ? "" : person.name;
-      update();
+      const option = options.find(option => option.dataset.person === person.name);
+      selectPerson(selected === option ? options[0] : option);
     });
     stations.append(station);
     person.station = station;
@@ -86,7 +90,7 @@
   }
 
   function update() {
-    const name = select.value;
+    const name = selected.dataset.person;
     const related = new Set();
     let total = 0;
     let count = 0;
@@ -116,7 +120,30 @@
     for (const button of switches) button.setAttribute("aria-pressed", String(button.dataset.view === view));
   }
 
-  select.addEventListener("change", update);
+  function selectPerson(option) {
+    selected.setAttribute("aria-pressed", "false");
+    selected = option;
+    selected.setAttribute("aria-pressed", "true");
+    filterValue.textContent = selected.textContent;
+    picker.open = false;
+    update();
+  }
+
+  for (const option of options) {
+    option.addEventListener("click", () => {
+      selectPerson(option);
+      summary.focus();
+    });
+  }
+  picker.addEventListener("keydown", event => {
+    if (event.key === "Escape" && picker.open) {
+      picker.open = false;
+      summary.focus();
+    }
+  });
+  document.addEventListener("click", event => {
+    if (!picker.contains(event.target)) picker.open = false;
+  });
   for (const button of switches) button.addEventListener("click", () => {
     view = button.dataset.view;
     update();

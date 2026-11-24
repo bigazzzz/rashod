@@ -5,12 +5,16 @@
         <span data-total-label>Сумма переводов</span>
         <strong data-total></strong>
       </div>
-      <label class="metro-filter">Участник
-        <select data-person>
-          <option value="">Все участники</option>
-          {% for person in totals %}<option value="{{ person }}">{{ person }}</option>{% endfor %}
-        </select>
-      </label>
+      <div class="metro-filter">
+        <span id="metro-filter-label">Участник</span>
+        <details class="metro-picker">
+          <summary aria-labelledby="metro-filter-label metro-filter-value"><span id="metro-filter-value">Все участники</span></summary>
+          <div class="metro-options" role="group" aria-labelledby="metro-filter-label">
+            <button type="button" data-person="" aria-pressed="true">Все участники</button>
+            {% for person in totals %}<button type="button" data-person="{{ person }}" aria-pressed="false">{{ person }}</button>{% endfor %}
+          </div>
+        </details>
+      </div>
     </header>
     <div class="metro-bar">
       <div class="metro-switch" role="group" aria-label="Вид переводов">
@@ -36,4 +40,4 @@
     {% endfor %}
   </ul>
 </section>
-<script src="/static/metro.js" defer></script>
+<script src="/static/metro.js?v=2" defer></script>

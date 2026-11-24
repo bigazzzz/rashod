@@ -581,8 +581,10 @@ def test_results_metro_uses_settlement_amounts_and_canonical_names(client):
     assert 'class="metro-map" hidden' in html
     assert 'id="transfer-metro"' in html
     assert 'data-from="Олег" data-to="Аня" data-kopecks="1001"' in html
-    assert '<option value="Лена">Лена</option>' in html
-    assert '<option value="аня">' not in html
+    assert '<details class="metro-picker">' in html
+    assert 'data-person="" aria-pressed="true">Все участники</button>' in html
+    assert 'data-person="Лена" aria-pressed="false">Лена</button>' in html
+    assert 'data-person="аня"' not in html
 
 
 def test_no_transfer_map_when_everyone_is_even(client):

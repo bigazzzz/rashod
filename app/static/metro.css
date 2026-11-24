@@ -28,16 +28,36 @@
   font-variant-numeric: tabular-nums;
 }
 .metro-filter { max-width: 48%; }
-.metro-filter select {
-  background: transparent;
+.metro-picker summary, .metro-options {
+  background: var(--navy);
   color: var(--card-text);
   border: 1px solid var(--card-text-dim);
-  padding: 5px 7px;
   border-radius: 6px;
-  min-height: 35px;
-  max-width: 100%;
-  font: inherit;
 }
+.metro-picker summary {
+  cursor: pointer;
+  min-height: 35px;
+  padding: 8px;
+}
+.metro-options {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 4px;
+}
+.metro-options button {
+  background: transparent;
+  font: inherit;
+  min-height: 36px;
+  overflow-wrap: anywhere;
+  padding: 6px 8px;
+  text-align: left;
+}
+.metro .metro-options button[aria-pressed=true] { background: var(--gold); color: var(--navy-deep); }
+.metro-options button:not([aria-pressed=true]):hover { background: var(--divider); }
+.metro-picker :focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 .metro-bar { padding: 0 20px 17px; border-bottom: 1px solid var(--divider); }
 .metro-switch { display: flex; padding: 3px; border-radius: 8px; background: var(--navy); }
 .metro button { color: var(--card-text); box-shadow: none; margin: 0; transform: none; transition: none; }
