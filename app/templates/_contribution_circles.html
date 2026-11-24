@@ -28,6 +28,7 @@
           </li>
         {% endfor %}
       </ul>
+      <p>Всего потрачено <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
       <p>Общая часть взносов <strong>{{ "%.2f"|format(common_contribution) }} ₽ с человека</strong></p>
       <p>Осталось перевести <strong>{{ "%.2f"|format(transfer_total) }} ₽</strong></p>
     </div>

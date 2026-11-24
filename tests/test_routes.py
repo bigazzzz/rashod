@@ -365,8 +365,9 @@ def test_full_flow_totals_and_settlement(client):
     assert "Скачать файл" in page.text
     assert 'class="btn-export"' in page.text
     # Settlement and totals appear before the link to the expense log.
-    assert page.text.index("Кто кому должен") < page.text.index("Кто сколько потратил")
-    assert page.text.index("Кто сколько потратил") < page.text.index("Внесённые траты")
+    assert page.text.index("Кто кому должен") < page.text.index("Круги взносов")
+    assert page.text.index("Круги взносов") < page.text.index("Внесённые траты")
+    assert "Кто сколько потратил" not in page.text
 
 
 def test_negative_amount_rejected(client):
@@ -619,6 +620,7 @@ def test_results_contribution_circles(client, amounts, common, to_transfer, circ
 
     html = client.get(f"/r/{slug}").text
     assert 'id="contribution-circles"' in html
+    assert f'Всего потрачено <strong>{sum(map(float, amounts)):.2f} ₽</strong>' in html
     assert f'Общая часть взносов <strong>{common} ₽ с человека</strong>' in html
     assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
     assert html.count('class="contribution-circle"') == circle_count
