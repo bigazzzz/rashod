@@ -1,8 +1,9 @@
 import asyncio
+import base64
+import json
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock
-from urllib.parse import unquote
 
 import httpx
 import pytest
@@ -18,7 +19,7 @@ from app.og_image import (
     render_event_og_jpeg,
     save_generated_background,
 )
-from app.pollinations import fetch_cartoon_background
+from app.workers_ai import fetch_cartoon_background
 
 
 def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
@@ -27,28 +28,47 @@ def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
     return buf.getvalue()
 
 
-@pytest.mark.parametrize("key", ["", "test-key"])
-def test_fetch_sends_full_russian_prompt(monkeypatch, key):
-    monkeypatch.setenv("POLLINATIONS_API_KEY", key)
+@pytest.fixture
+def configured(monkeypatch):
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "test-token")
+
+
+def test_cloudflare_receives_title_and_returns_image(configured):
     title = "Пикник у Маши / на Волге?"
     payload = _tiny_jpeg_bytes()
 
     def respond(request):
-        assert request.url.host == "gen.pollinations.ai"
-        if key:
-            assert request.headers["Authorization"] == f"Bearer {key}"
-        else:
-            assert "Authorization" not in request.headers
-        prompt = unquote(request.url.raw_path.split(b"?", 1)[0].decode())
-        assert title in prompt
-        assert "мультяшную" in prompt and "слева" in prompt and "Без надписей" in prompt
-        return httpx.Response(200, content=payload)
+        assert request.method == "POST"
+        assert str(request.url) == (
+            "https://api.cloudflare.com/client/v4/accounts/test-account/ai/run/"
+            "@cf/black-forest-labs/flux-1-schnell"
+        )
+        assert request.headers["Authorization"] == "Bearer test-token"
+        data = json.loads(request.content)
+        assert title in data["prompt"] and "слева" in data["prompt"]
+        return httpx.Response(200, json={"success": True, "result": {"image": base64.b64encode(payload).decode()}})
 
     assert asyncio.run(fetch_cartoon_background(title, transport=httpx.MockTransport(respond))) == payload
 
 
+@pytest.mark.parametrize("missing", ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"])
+def test_missing_credentials_skip_request(configured, monkeypatch, missing):
+    monkeypatch.delenv(missing)
+    def unexpected(request):
+        pytest.fail("Credentials missing, request should be skipped")
+
+    assert asyncio.run(fetch_cartoon_background("Ужин", transport=httpx.MockTransport(unexpected))) is None
+
+
+@pytest.mark.parametrize("body", [{"success": False}, {"result": {}}, {"success": True, "result": {"image": "!"}}])
+def test_invalid_cloudflare_response(configured, body):
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=body))
+    assert asyncio.run(fetch_cartoon_background("Ужин", transport=transport)) is None
+
+
 @pytest.mark.parametrize("status", [403, 429, 503])
-def test_provider_errors_stop_after_one_request(status):
+def test_provider_errors_stop_after_one_request(configured, status):
     requests = []
 
     def respond(request):
@@ -59,7 +79,7 @@ def test_provider_errors_stop_after_one_request(status):
     assert len(requests) == 1
 
 
-def test_slow_download_is_cancelled():
+def test_slow_download_is_cancelled(configured):
     cancelled = []
 
     async def respond(request):
@@ -96,7 +116,7 @@ def test_save_and_render_uses_custom_background():
 def test_generate_and_store_persists_when_fetch_ok(monkeypatch):
     slug = "genstoreokslug001"
     monkeypatch.setattr(
-        "app.pollinations.fetch_cartoon_background",
+        "app.workers_ai.fetch_cartoon_background",
         AsyncMock(return_value=_tiny_jpeg_bytes((10, 200, 10))),
     )
     # Call the real function (autouse mock targets app.og_image.generate_and_store_background
@@ -110,7 +130,7 @@ def test_generate_and_store_persists_when_fetch_ok(monkeypatch):
 
 def test_generate_and_store_noop_when_fetch_fails(monkeypatch):
     slug = "genstorefailslug01"
-    monkeypatch.setattr("app.pollinations.fetch_cartoon_background", AsyncMock(return_value=None))
+    monkeypatch.setattr("app.workers_ai.fetch_cartoon_background", AsyncMock(return_value=None))
     from app import og_image
 
     asyncio.run(og_image.generate_and_store_background(slug, "Ничего"))
@@ -130,7 +150,7 @@ def test_invalid_provider_image_leaves_homepage_card(client, monkeypatch):
     from app.og_image import generate_and_store_background
 
     monkeypatch.setattr("app.routes.events.generate_and_store_background", generate_and_store_background)
-    monkeypatch.setattr("app.pollinations.fetch_cartoon_background", AsyncMock(return_value=b"invalid image"))
+    monkeypatch.setattr("app.workers_ai.fetch_cartoon_background", AsyncMock(return_value=b"invalid image"))
     response = client.post("/events", data={"name": "Пикник"}, follow_redirects=False)
     assert response.status_code == 303
     slug = response.headers["location"].split("/")[-1]

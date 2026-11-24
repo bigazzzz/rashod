@@ -28,18 +28,19 @@ def test_ops_health_ok(client, monkeypatch):
     import app.routes.ops as ops
 
     monkeypatch.setattr(ops, "OPS_TOKEN", "secret-ops")
-    monkeypatch.setenv("POLLINATIONS_API_KEY", "pk-test")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "account")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "pk-test")
     response = client.get("/internal/ops/health", headers={"X-Ops-Token": "secret-ops"})
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
     assert data["db_ok"] is True
     assert data["og_dir_exists"] is True
-    assert data["pollinations_configured"] is True
+    assert data["workers_ai_configured"] is True
     assert "version" in data
     assert data["retention_days"] == 365
     assert "public_base_url_set" in data
-    assert "POLLINATIONS" not in str(data).upper() or data["pollinations_configured"] is True
+    assert data["pollinations_configured"] is False
     assert "pk-test" not in response.text
 
 

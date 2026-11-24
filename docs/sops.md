@@ -17,7 +17,7 @@
 
 | Переменная | Назначение |
 |------------|------------|
-| `POLLINATIONS_API_KEY` | опциональный ключ Pollinations |
+| `CLOUDFLARE_API_TOKEN` | токен Workers AI для генерации обложек |
 | `OPS_TOKEN` | `/internal/ops/*` (только между контейнерами) |
 | `ADMIN_PASSWORD` | пароль входа в `/admin` |
 | `ADMIN_SESSION_SECRET` | подпись cookie-сессии админки (отдельный random) |

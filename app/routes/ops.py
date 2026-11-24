@@ -21,6 +21,7 @@ from app.metrics import (
 )
 from app.models import Event, Expense
 from app.public_checks import public_checks
+from app.workers_ai import workers_ai_configured
 from app.og_image import OG_IMAGE_DIR, background_path_for, generate_and_store_background
 from app.routes.events import PUBLIC_BASE_URL, _get_event_or_404
 from app.routes.expenses import build_expense
@@ -83,13 +84,13 @@ def ops_health(db: Session = Depends(get_db)):
     except Exception:  # noqa: BLE001 — report as unhealthy
         db_ok = False
 
-    pollinations_configured = bool((os.environ.get("POLLINATIONS_API_KEY") or "").strip())
     return {
         "status": "ok" if db_ok else "degraded",
         "version": __version__,
         "db_ok": db_ok,
         "og_dir_exists": OG_IMAGE_DIR.is_dir(),
-        "pollinations_configured": pollinations_configured,
+        "workers_ai_configured": workers_ai_configured(),
+        "pollinations_configured": False,  # Retained for older monitoring clients.
         "retention_days": RETENTION_DAYS,
         "public_base_url_set": bool(PUBLIC_BASE_URL),
     }

@@ -8,7 +8,7 @@ from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
 WIDTH = 1200
 HEIGHT = 630
@@ -217,10 +217,10 @@ def render_site_og_jpeg() -> bytes:
 
 
 def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
-    """Resize/normalize Pollinations image and store as JPEG under OG_IMAGE_DIR."""
+    """Resize/normalize Cloudflare Workers AI image and store as JPEG under OG_IMAGE_DIR."""
     try:
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
-        image = image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+        image = ImageOps.fit(image, (WIDTH, HEIGHT), method=Image.Resampling.LANCZOS)
     except OSError as exc:
         log.warning("Cannot decode generated background for %s: %s", slug, exc)
         return None
@@ -244,12 +244,12 @@ def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
 
 
 async def generate_and_store_background(slug: str, event_name: str) -> None:
-    """Background job: fetch from Pollinations and persist, or no-op on failure."""
-    from app.pollinations import fetch_cartoon_background
+    """Background job: fetch from Cloudflare Workers AI and persist, or no-op on failure."""
+    from app.workers_ai import fetch_cartoon_background
 
     raw = await fetch_cartoon_background(event_name)
     if not raw:
         return
     path = await asyncio.to_thread(save_generated_background, slug, raw)
     if path:
-        log.info("Stored Pollinations OG background for %s at %s", slug, path)
+        log.info("Stored Cloudflare Workers AI OG background for %s at %s", slug, path)

@@ -12,7 +12,8 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 os.environ["PUBLIC_BASE_URL"] = ""
 os.environ["EVENT_RETENTION_DAYS"] = "365"
 os.environ["OG_IMAGE_DIR"] = os.path.join(_tmp_dir, "og")
-os.environ["POLLINATIONS_API_KEY"] = ""
+os.environ["CLOUDFLARE_ACCOUNT_ID"] = ""
+os.environ["CLOUDFLARE_API_TOKEN"] = ""
 os.environ["OPS_TOKEN"] = ""
 os.environ["ADMIN_PASSWORD"] = ""
 os.environ["ADMIN_SESSION_SECRET"] = ""
@@ -25,8 +26,8 @@ from app.main import app  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def disable_pollinations_network(monkeypatch):
-    """Tests must not hit Pollinations; create_event schedules a background task."""
+def disable_image_generation_network(monkeypatch):
+    """Tests must not hit Cloudflare Workers AI; create_event schedules a background task."""
     monkeypatch.setattr(
         "app.routes.events.generate_and_store_background",
         lambda slug, name: None,

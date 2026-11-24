@@ -16,8 +16,8 @@ services:
       TRUST_PROXY_HEADERS: "1" # Caddy is the only thing that can reach this container
       EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-365}
       OG_IMAGE_DIR: /data/og
-      # Optional. Never commit a real key; leave empty for anonymous Pollinations.
-      POLLINATIONS_API_KEY: ${POLLINATIONS_API_KEY:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       # Shared with mcp. Empty = /internal/ops disabled (404).
       OPS_TOKEN: ${OPS_TOKEN:-}
       # Browser admin at /admin. Both required or /admin returns 404.

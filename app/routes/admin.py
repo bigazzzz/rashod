@@ -29,6 +29,7 @@ from app.metrics import (
 )
 from app.models import Event, Expense
 from app.public_checks import public_checks
+from app.workers_ai import workers_ai_configured
 from app.og_image import OG_IMAGE_DIR, background_path_for, delete_background_for
 from app.rate_limit import limiter
 from app.routes.events import PUBLIC_BASE_URL
@@ -149,9 +150,7 @@ def admin_home(request: Request, db: Session = Depends(get_db), days: int = Quer
                 "version": __version__,
                 "db_ok": db_ok,
                 "og_dir_exists": OG_IMAGE_DIR.is_dir(),
-                "pollinations_configured": bool(
-                    (os.environ.get("POLLINATIONS_API_KEY") or "").strip()
-                ),
+                "workers_ai_configured": workers_ai_configured(),
                 "retention_days": RETENTION_DAYS,
                 "public_base_url_set": bool(PUBLIC_BASE_URL),
             },
