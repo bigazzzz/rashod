@@ -112,7 +112,7 @@
     root.querySelector("[data-total]").textContent = name && !count ? "Все квиты" : money.format(total / 100);
     root.querySelector(".metro-count").textContent = count + " " + counts[plural.select(count)];
     map.hidden = view !== "map" || !count;
-    list.hidden = view !== "list" || !count;
+    list.hidden = !count;
     for (const button of switches) button.setAttribute("aria-pressed", String(button.dataset.view === view));
   }
 

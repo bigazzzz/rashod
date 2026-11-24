@@ -247,8 +247,8 @@ def test_empty_name_and_amount_get_defaults(client):
     page = client.get(f"/e/{slug}")
     assert "User001" in page.text
     assert "User002" in page.text
-    results = client.get(f"/r/{slug}")
-    assert results.text.count("участник") >= 2
+    log = client.get(f"/l/{slug}")
+    assert log.text.count("<td>участник</td>") == 2
 
 
 def test_auto_payer_name_continues_after_existing_user(client):
@@ -320,7 +320,7 @@ def test_full_flow_totals_and_settlement(client):
     event_page = client.get(f"/e/{slug}")
     assert event_page.status_code == 200
     assert "участник без трат" in event_page.text
-    assert "Внесённые траты" not in event_page.text
+    assert f'href="/l/{slug}">Внесённые траты</a>' in event_page.text
     assert 'class="btn-secondary"' in event_page.text
     assert ">Результаты<" in event_page.text
     assert 'class="btn-export"' in event_page.text
@@ -328,9 +328,18 @@ def test_full_flow_totals_and_settlement(client):
 
     results = client.get(f"/r/{slug}")
     assert results.status_code == 200
-    assert "Внесённые траты" in results.text
-    assert "Когда (UTC)" in results.text
-    assert "участник" in results.text
+    assert f'href="/l/{slug}">Внесённые траты</a>' in results.text
+    assert "Когда (UTC)" not in results.text
+    assert "Напитки" not in results.text
+    log = client.get(f"/l/{slug}")
+    assert log.status_code == 200
+    assert "Когда (UTC)" in log.text
+    assert "Напитки" in log.text
+    assert "<td>участник</td>" in log.text
+    assert f'href="/e/{slug}"' in log.text
+    assert f'href="/r/{slug}"' in log.text
+    assert f'property="og:url" content="http://testserver/l/{slug}"' in log.text
+    assert f'property="og:image" content="http://testserver/og/{slug}.jpg"' in log.text
     assert "Alice" in results.text
     assert "Bob" in results.text
     assert "Carol" in results.text
@@ -352,7 +361,7 @@ def test_full_flow_totals_and_settlement(client):
     page = client.get(f"/r/{slug}")
     assert "Скачать файл" in page.text
     assert 'class="btn-export"' in page.text
-    # settlement block comes before expense log
+    # Settlement and totals appear before the link to the expense log.
     assert page.text.index("Кто кому должен") < page.text.index("Кто сколько потратил")
     assert page.text.index("Кто сколько потратил") < page.text.index("Внесённые траты")
 
@@ -396,9 +405,9 @@ def test_expense_without_description_is_accepted(client):
     )
     assert response.status_code == 303
 
-    results = client.get(f"/r/{slug}")
-    assert "Alice" in results.text
-    assert "—" in results.text
+    log = client.get(f"/l/{slug}")
+    assert "Alice" in log.text
+    assert "<td>—</td>" in log.text
 
 
 def test_results_page_shows_total(client):
@@ -445,11 +454,11 @@ def test_delete_expense_removes_it(client):
         f"/e/{slug}/expenses/{expense_id}/delete", follow_redirects=False
     )
     assert response.status_code == 303
-    assert response.headers["location"] == f"/r/{slug}"
+    assert response.headers["location"] == f"/l/{slug}"
 
-    results = client.get(f"/r/{slug}")
-    assert "Alice" not in results.text
-    assert "Пока никто ничего не добавил" in results.text
+    log = client.get(response.headers["location"])
+    assert "Alice" not in log.text
+    assert "Пока никто ничего не добавил" in log.text
 
 
 def test_delete_expense_from_other_event_is_ignored(client):
@@ -510,10 +519,10 @@ def test_zero_amount_ignores_description(client):
         data={"payer_name": "Алиса", "description": "не должно сохраниться", "amount": "0"},
         follow_redirects=False,
     )
-    results = client.get(f"/r/{slug}")
-    assert "Алиса" in results.text
-    assert "не должно сохраниться" not in results.text
-    assert "участник" in results.text
+    log = client.get(f"/l/{slug}")
+    assert "Алиса" in log.text
+    assert "не должно сохраниться" not in log.text
+    assert "<td>участник</td>" in log.text
 
 
 def test_event_page_has_copy_button(client):
@@ -545,12 +554,13 @@ def test_about_page_lists_all_releases_and_privacy(client):
 
 def test_share_pages_support_head(client):
     slug = create_event(client, "Обложка")
-    for path in ("/", f"/e/{slug}", f"/r/{slug}"):
+    for path in ("/", f"/e/{slug}", f"/r/{slug}", f"/l/{slug}"):
         response = client.head(path)
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
         assert not response.content
     assert client.head("/r/missing").status_code == 404
+    assert client.get("/l/missing").status_code == 404
 
 
 def test_results_share_preview_uses_event_image(client):

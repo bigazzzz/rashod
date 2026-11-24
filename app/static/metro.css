@@ -53,7 +53,7 @@
 }
 .metro-switch button[aria-pressed=true] { background: var(--ink); color: #fffdf3; }
 .metro-count { font-size: 12px; color: var(--secondary); }
-.metro-map { background-image: radial-gradient(#cfcbbc .8px, transparent .9px); background-size: 14px 14px; }
+.metro-map { border-bottom: 1px solid #d2cebf; background-image: radial-gradient(#cfcbbc .8px, transparent .9px); background-size: 14px 14px; }
 .metro-sides {
   padding: 17px 17px 6px;
   color: var(--secondary);

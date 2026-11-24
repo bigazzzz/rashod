@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Внесённые траты — {{ event.name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block og_title %}Внесённые траты · {{ event.name }}{% endblock %}
+{% block og_description %}История расходов события «{{ event.name }}» в Поровну.{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ share_url }}">{% endblock %}
+{% block hero_class %} hero--compact{% endblock %}
+{% block hero_src %}{{ og_image_path }}{% endblock %}
+{% block hero_alt %}Превью события «{{ event.name }}»{% endblock %}
+{% block hero_attrs %}width="1200" height="630"{% endblock %}
+{% block content %}
+  <h1>Внесённые траты · {{ event.name }}</h1>
+
+  <p class="action-row">
+    <a class="btn-secondary" href="/e/{{ event.slug }}">К событию</a>
+    <a class="btn-secondary" href="/r/{{ event.slug }}">К результатам</a>
+  </p>
+
+  {% if expenses %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th>Когда (UTC)</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr>
+              <td>{{ expense.payer_name }}</td>
+              <td>{% if expense.amount == 0 %}—{% else %}{{ expense.description or "—" }}{% endif %}</td>
+              <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
+              <td class="timestamp">{{ expense.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+              <td>
+                <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
+                  <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
+  {% else %}
+    <p>Пока никто ничего не добавил.</p>
+  {% endif %}
+
+{% endblock %}

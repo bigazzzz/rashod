@@ -366,6 +366,28 @@ def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
     )
 
 
+@router.head("/l/{slug}", include_in_schema=False)
+@router.get("/l/{slug}")
+def expense_log_page(request: Request, slug: str, db: Session = Depends(get_db)):
+    """Показать внесённые траты одного события в хронологическом порядке."""
+    event = _get_event_or_404(db, slug)
+    expenses = crud.get_expenses(db, event)
+    base_url = _public_base_url(request)
+    og_image_url, og_image_path = _og_image_refs(base_url, event)
+    return templates.TemplateResponse(
+        request,
+        "expense_log.html",
+        {
+            "event": event,
+            "expenses": expenses,
+            "total": sum((e.amount for e in expenses), Decimal("0")),
+            "share_url": f"{base_url}/l/{event.slug}",
+            "og_image_url": og_image_url,
+            "og_image_path": og_image_path,
+        },
+    )
+
+
 @router.get("/e/{slug}/results.csv", include_in_schema=False)
 def results_csv_legacy(slug: str):
     return RedirectResponse(url=f"/r/{slug}.csv", status_code=302)

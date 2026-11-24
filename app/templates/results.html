@@ -38,40 +38,13 @@
         </tbody>
       </table>
     </div>
+    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
   {% else %}
     <p>Трат пока нет.</p>
   {% endif %}
 
-  <h2>Внесённые траты</h2>
-  {% if expenses %}
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Кто</th><th>На что</th><th>Сумма</th><th>Когда (UTC)</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for expense in expenses %}
-            <tr>
-              <td>{{ expense.payer_name }}</td>
-              <td>{% if expense.amount == 0 %}—{% else %}{{ expense.description or "—" }}{% endif %}</td>
-              <td>{% if expense.amount == 0 %}участник{% else %}{{ "%.2f"|format(expense.amount) }} ₽{% endif %}</td>
-              <td class="timestamp">{{ expense.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
-              <td>
-                <form method="post" action="/e/{{ event.slug }}/expenses/{{ expense.id }}/delete">
-                  <button type="submit" class="icon-btn" aria-label="Удалить трату" title="Удалить">✕</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <p class="total-line">Всего потрачено: <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
-  {% else %}
-    <p>Пока никто ничего не добавил.</p>
-  {% endif %}
-
   <p class="action-row">
+    <a class="btn-secondary" href="/l/{{ event.slug }}">Внесённые траты</a>
     <a class="btn-export" href="/r/{{ event.slug }}.csv">Скачать файл</a>
   </p>
 
