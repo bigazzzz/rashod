@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block styles %}<link rel="stylesheet" href="/static/metro.css">{% endblock %}
 {% block title %}Результаты — {{ event.name }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block og_title %}Результаты · {{ event.name }}{% endblock %}
@@ -18,11 +19,7 @@
 
   <h2>Кто кому должен</h2>
   {% if transfers %}
-    <ul>
-      {% for t in transfers %}
-        <li>{{ t.from_person }} → {{ t.to_person }}: {{ "%.2f"|format(t.amount) }} ₽</li>
-      {% endfor %}
-    </ul>
+    {% include "_transfer_metro.html" %}
   {% else %}
     <p>Все квиты, переводов не требуется.</p>
   {% endif %}

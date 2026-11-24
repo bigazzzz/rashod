@@ -560,3 +560,21 @@ def test_results_share_preview_uses_event_image(client):
     assert f'property="og:image" content="http://testserver/og/{slug}.jpg"' in page
     assert f'name="twitter:image" content="http://testserver/og/{slug}.jpg"' in page
     assert 'name="twitter:card" content="summary_large_image"' in page
+
+
+def test_results_metro_uses_settlement_amounts_and_canonical_names(client):
+    slug = create_event(client)
+    for name, amount in [("Аня", "20.02"), ("аня", "0"), ("Олег", "0"), ("Лена", "10.01")]:
+        client.post(f"/e/{slug}/expenses", data={"payer_name": name, "amount": amount}, follow_redirects=False)
+    html = client.get(f"/r/{slug}").text
+    assert 'id="transfer-metro"' in html
+    assert 'data-from="Олег" data-to="Аня" data-kopecks="1001"' in html
+    assert '<option value="Лена">Лена</option>' in html
+    assert '<option value="аня">' not in html
+
+
+def test_no_transfer_map_when_everyone_is_even(client):
+    slug = create_event(client)
+    html = client.get(f"/r/{slug}").text
+    assert 'id="transfer-metro"' not in html
+    assert "Все квиты" in html

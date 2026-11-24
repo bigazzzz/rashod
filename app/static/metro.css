@@ -1,0 +1,107 @@
+.metro {
+  --paper: #f7f3e8;
+  --ink: #232e30;
+  --secondary: #57625d;
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid #d5cebb;
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: "Arial", system-ui, sans-serif;
+}
+.metro [hidden] { display: none !important; }
+.metro-head, .metro-bar, .metro-sides {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.metro-head { padding: 22px 20px 17px; align-items: start; }
+.metro-total, .metro-filter { display: grid; gap: 6px; min-width: 0; }
+.metro-total span, .metro-filter {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--secondary);
+  overflow-wrap: anywhere;
+}
+.metro-total strong {
+  font: bold clamp(27px, 5vw, 36px)/1.05 Georgia, serif;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
+}
+.metro-filter { max-width: 48%; }
+.metro-filter select {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid #acae9f;
+  padding: 5px 7px;
+  border-radius: 6px;
+  min-height: 35px;
+  max-width: 100%;
+  font: inherit;
+}
+.metro-bar { padding: 0 20px 17px; border-bottom: 1px solid #d2cebf; }
+.metro-switch { display: flex; padding: 3px; border-radius: 8px; background: #e6e3d6; }
+.metro button { color: var(--ink); box-shadow: none; margin: 0; transform: none; transition: none; }
+.metro-switch button {
+  font: 600 13px/1.2 Arial, sans-serif;
+  min-height: 32px;
+  padding: 6px 11px;
+  background: transparent;
+  border-radius: 5px;
+}
+.metro-switch button[aria-pressed=true] { background: var(--ink); color: #fffdf3; }
+.metro-count { font-size: 12px; color: var(--secondary); }
+.metro-map { background-image: radial-gradient(#cfcbbc .8px, transparent .9px); background-size: 14px 14px; }
+.metro-sides {
+  padding: 17px 17px 6px;
+  color: var(--secondary);
+  font: 600 10px/1.2 Arial, sans-serif;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.metro-scroll { container-type: inline-size; max-height: min(65vh, 520px); overflow-y: auto; padding-bottom: 12px; }
+.metro-track { --edge: clamp(64px, 19cqw, 102px); position: relative; margin-inline: var(--edge); }
+.metro-lines { width: 100%; height: 100%; position: absolute; inset: 0; overflow: visible; }
+.metro-lines path { fill: none; stroke-width: 4px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.metro-fare {
+  position: absolute; left: 50%; transform: translate(-50%, -50%);
+  padding: 2px 6px;
+  background: var(--paper); color: var(--ink); border-radius: 4px;
+  font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.metro-fare::after {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  border-top: 2px solid var(--rail); border-right: 2px solid var(--rail);
+  vertical-align: 2px; transform: rotate(45deg); margin-left: 4px;
+}
+.metro button.metro-station {
+  position: absolute; width: var(--edge);
+  background: transparent; padding: 0; min-height: 42px;
+  display: flex; align-items: center; border: 0;
+  transform: translateY(-50%); border-radius: 4px;
+  font: 700 14px/1.1 Arial, sans-serif;
+}
+.metro button.metro-from { right: calc(100% - 7px); justify-content: flex-end; }
+.metro button.metro-to { left: calc(100% - 7px); }
+.metro-station span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metro-station::after {
+  content: ""; box-sizing: border-box; width: 15px; height: 15px; flex: none;
+  border: 4px solid var(--rail, var(--ink)); border-radius: 50%; background: var(--paper);
+}
+.metro-from::after { margin-left: 5px; }
+.metro-to::after { order: -1; margin-right: 5px; }
+.metro-station[aria-pressed=true]::after { outline: 2px solid var(--ink); outline-offset: 2px; }
+.metro .is-muted { opacity: .25; }
+.metro button:focus-visible, .metro select:focus-visible { outline: 2px solid #006c66; outline-offset: 1px; }
+.metro .metro-list { margin: 0; padding: 8px 18px 12px; }
+.metro .metro-list li { border: 0; border-bottom: 1px solid #d2cebf; background: transparent; padding: 12px 0; margin: 0; border-radius: 0; }
+.metro .metro-list li:last-child { border: 0; }
+@media (max-width: 480px) {
+  .metro-head { padding: 16px 12px 15px; }
+  .metro-bar { padding: 0 12px 12px; }
+  .metro-sides { padding-inline: 10px; }
+  .metro-fare { font-size: 13px; }
+  .metro button.metro-station { font-size: 12px; }
+}
