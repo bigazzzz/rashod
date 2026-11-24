@@ -4,6 +4,7 @@ import asyncio
 import base64
 import logging
 import os
+import re
 from urllib.parse import quote
 
 import httpx
@@ -35,34 +36,49 @@ def workers_ai_configured() -> bool:
     return all(_credentials())
 
 
+async def _run_model(client: httpx.AsyncClient, model: str, inputs: dict) -> dict:
+    response = await client.post(model, json=inputs)
+    response.raise_for_status()
+    payload = response.json()
+    if isinstance(payload, dict) and payload.get("success") is True:
+        result = payload.get("result")
+        if isinstance(result, dict):
+            return result
+    return {}
+
+
 async def fetch_cartoon_background(
     event_name: str, *, template: str | None = None, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 10
 ) -> bytes | None:
-    """Fetch one image within a total deadline, returning None on timeout or failure."""
+    """Translate Russian prompts and fetch the image within one shared deadline."""
     account, token = _credentials()
     if not account or not token:
         return None
 
-    url = (
-        f"https://api.cloudflare.com/client/v4/accounts/{quote(account, safe='')}/ai/run/"
-        "@cf/black-forest-labs/flux-1-schnell"
-    )
+    base_url = f"https://api.cloudflare.com/client/v4/accounts/{quote(account, safe='')}/ai/run/"
+    prompt = build_prompt(event_name, template)
     try:
         async with asyncio.timeout(timeout):
-            async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
-                response = await client.post(
-                    url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    json={"prompt": build_prompt(event_name, template), "steps": 4},
-                )
-                response.raise_for_status()
-                payload = response.json()
-                if not isinstance(payload, dict) or payload.get("success") is not True:
+            async with httpx.AsyncClient(
+                base_url=base_url, headers={"Authorization": f"Bearer {token}"},
+                transport=transport, timeout=timeout,
+            ) as client:
+                if re.search(r"[А-Яа-яЁё]", prompt):
+                    translation = await _run_model(client, "@cf/meta/m2m100-1.2b", {
+                        "text": prompt, "source_lang": "russian", "target_lang": "english",
+                    })
+                    english = translation.get("translated_text")
+                    if not isinstance(english, str) or not english.strip():
+                        return None
+                    prompt = english.strip()[:2048]
+
+                result = await _run_model(client, "@cf/black-forest-labs/flux-1-schnell", {
+                    "prompt": prompt, "steps": 4,
+                })
+                image = result.get("image")
+                if not isinstance(image, str):
                     return None
-                result = payload.get("result")
-                if not isinstance(result, dict) or not isinstance(result.get("image"), str):
-                    return None
-                return base64.b64decode(result["image"], validate=True) or None
+                return base64.b64decode(image, validate=True) or None
     except (TimeoutError, httpx.HTTPError, ValueError) as exc:
         logging.getLogger(__name__).warning("Workers AI request failed (%s)", type(exc).__name__)
         return None

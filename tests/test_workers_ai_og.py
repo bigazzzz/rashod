@@ -38,18 +38,42 @@ def test_cloudflare_receives_title_and_returns_image(configured):
     title = "Пикник у Маши / на Волге?"
     payload = _tiny_jpeg_bytes()
 
+    calls = []
+    english = "A bright cartoon picnic on the Volga, with room on the left."
+
     def respond(request):
         assert request.method == "POST"
-        assert str(request.url) == (
-            "https://api.cloudflare.com/client/v4/accounts/test-account/ai/run/"
-            "@cf/black-forest-labs/flux-1-schnell"
-        )
         assert request.headers["Authorization"] == "Bearer test-token"
         data = json.loads(request.content)
-        assert title in data["prompt"] and "слева" in data["prompt"]
+        model = request.url.path.split("/ai/run/")[1]
+        calls.append(model)
+        if model == "@cf/meta/m2m100-1.2b":
+            assert title in data["text"] and "слева" in data["text"]
+            assert data["source_lang"] == "russian" and data["target_lang"] == "english"
+            return httpx.Response(200, json={"success": True, "result": {"translated_text": english}})
+        assert data == {"prompt": english, "steps": 4}
         return httpx.Response(200, json={"success": True, "result": {"image": base64.b64encode(payload).decode()}})
 
     assert asyncio.run(fetch_cartoon_background(title, transport=httpx.MockTransport(respond))) == payload
+    assert calls == ["@cf/meta/m2m100-1.2b", "@cf/black-forest-labs/flux-1-schnell"]
+
+
+def test_english_template_skips_translation(configured):
+    def respond(request):
+        assert request.url.path.endswith("/flux-1-schnell")
+        assert json.loads(request.content)["prompt"] == "Watercolor: Picnic"
+        return httpx.Response(200, json={"success": True, "result": {"image": "YQ=="}})
+
+    assert asyncio.run(fetch_cartoon_background("Picnic", template="Watercolor: {event_name}",
+                                                transport=httpx.MockTransport(respond))) == b"a"
+
+
+def test_empty_translation_does_not_generate(configured):
+    def respond(request):
+        assert request.url.path.endswith("/m2m100-1.2b")
+        return httpx.Response(200, json={"success": True, "result": {"translated_text": "  "}})
+
+    assert asyncio.run(fetch_cartoon_background("Поход", transport=httpx.MockTransport(respond))) is None
 
 
 @pytest.mark.parametrize("missing", ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"])
@@ -64,7 +88,7 @@ def test_missing_credentials_skip_request(configured, monkeypatch, missing):
 @pytest.mark.parametrize("body", [{"success": False}, {"result": {}}, {"success": True, "result": {"image": "!"}}])
 def test_invalid_cloudflare_response(configured, body):
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json=body))
-    assert asyncio.run(fetch_cartoon_background("Ужин", transport=transport)) is None
+    assert asyncio.run(fetch_cartoon_background("Dinner", template="{event_name}", transport=transport)) is None
 
 
 @pytest.mark.parametrize("status", [403, 429, 503])

@@ -154,8 +154,9 @@ def test_cover_prompt_edit_and_generation(client, monkeypatch, tmp_path):
     assert template in client.get(url).text
 
     prompts = []
-    async def capture(self, url, *, headers, json):
-        prompts.append(json["prompt"])
+    async def capture(self, url, *, json):
+        assert url.endswith("/m2m100-1.2b")
+        prompts.append(json["text"])
         return httpx.Response(200, request=httpx.Request("POST", url), json={"success": False})
 
     monkeypatch.setattr(httpx.AsyncClient, "post", capture)

@@ -5,7 +5,7 @@
 <form method="post" action="/admin/cover-prompt">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <label for="cover-prompt">Запрос к генератору изображений</label>
-  <p id="prompt-hint">Вставьте <code>{event_name}</code> там, где нужно название события. После сохранения запрос применяется к новым событиям.</p>
+  <p id="prompt-hint">Вставьте <code>{event_name}</code> там, где нужно название события. Для новых событий русский запрос переводится на английский перед генерацией.</p>
   <textarea id="cover-prompt" name="template" rows="7" maxlength="2048" required aria-describedby="prompt-hint">{{ template }}</textarea>
   <button type="submit" class="btn">Сохранить</button>
 </form>
