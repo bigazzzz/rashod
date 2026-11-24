@@ -12,7 +12,7 @@ services:
       - "8000"
     environment:
       DATABASE_URL: sqlite:////data/expenses.db
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://${DOMAIN:-localhost}}
       TRUST_PROXY_HEADERS: "1" # Caddy is the only thing that can reach this container
       EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-365}
       OG_IMAGE_DIR: /data/og

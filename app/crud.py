@@ -1,8 +1,9 @@
+import re
 import secrets
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import func
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.models import Event, Expense
@@ -30,9 +31,23 @@ def get_event_by_slug(db: Session, slug: str) -> Event | None:
 def add_expense(
     db: Session, event: Event, payer_name: str, description: str, amount: Decimal
 ) -> Expense:
+    """Store a payment, allocating blank payer names within the write transaction."""
+    payer_name = payer_name.strip()
+    if not payer_name:
+        # A write locks this event (the database on SQLite) until commit.
+        # Both the lookup and the insert must run under that same lock.
+        db.execute(update(Event).where(Event.id == event.id).values(name=Event.name))
+        names = db.query(Expense.payer_name).filter(Expense.event_id == event.id).distinct()
+        highest = 0
+        for (name,) in names:
+            match = re.fullmatch(r"user(\d+)", name.casefold())
+            if match:
+                highest = max(highest, int(match[1]))
+        payer_name = f"User{highest + 1:03d}"
+
     expense = Expense(
         event_id=event.id,
-        payer_name=payer_name.strip(),
+        payer_name=payer_name,
         description=description.strip(),
         amount=amount,
     )
@@ -46,7 +61,7 @@ def get_expenses(db: Session, event: Event) -> list[Expense]:
     return (
         db.query(Expense)
         .filter(Expense.event_id == event.id)
-        .order_by(Expense.created_at)
+        .order_by(Expense.created_at, Expense.id)
         .all()
     )
 

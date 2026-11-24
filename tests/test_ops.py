@@ -189,3 +189,38 @@ def test_ops_create_event_and_expense(client, monkeypatch):
     )
     assert negative.status_code == 400
     assert "отрицательн" in negative.json()["detail"]
+
+
+def test_expense_writes_share_auto_names_and_amount_validation(client, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from app.routes import ops
+
+    monkeypatch.setattr(ops, "OPS_TOKEN", "test")
+    headers = {"X-Ops-Token": "test"}
+    event = client.post("/internal/ops/events", headers=headers, json={"name": "Тест"}).json()
+    slug = event["slug"]
+    url = f"/internal/ops/events/{slug}/expenses"
+    client.post(f"/e/{slug}/expenses", data={"payer_name": "user001", "amount": "10"})
+    for invalid in ["0.004", "100000000", "1.00000000000000000000000000001"]:
+        assert client.post(url, headers=headers, json={"amount": invalid}).status_code == 400
+        assert client.post(f"/e/{slug}/expenses", data={"amount": invalid}).status_code == 400
+    assert client.post(url, headers=headers, json={"payer_name": "Аня", "amount": "99999999.990"}).status_code == 200
+
+    def add_anonymous(_):
+        return client.post(url, headers=headers, json={}).json()["payer_name"]
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        names = list(pool.map(add_anonymous, range(8)))
+    assert sorted(names) == [f"User{i:03d}" for i in range(2, 10)]
+
+
+def test_public_checks_do_not_start_cleanup(client, monkeypatch):
+    from unittest.mock import Mock
+    from app.routes import ops
+
+    monkeypatch.setattr(ops, "OPS_TOKEN", "test")
+    cleanup = Mock()
+    monkeypatch.setattr("app.cleanup.cleanup_old_events", cleanup)
+    response = client.get("/internal/ops/public-checks", headers={"X-Ops-Token": "test"})
+    assert all(check["status_code"] == 200 for check in response.json()["checks"])
+    cleanup.assert_not_called()

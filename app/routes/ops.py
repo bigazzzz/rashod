@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import time
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
@@ -21,6 +20,7 @@ from app.metrics import (
     expenses_added_total,
 )
 from app.models import Event, Expense
+from app.public_checks import public_checks
 from app.og_image import OG_IMAGE_DIR, background_path_for, generate_and_store_background
 from app.routes.events import PUBLIC_BASE_URL, _get_event_or_404
 from app.routes.expenses import build_expense
@@ -189,36 +189,9 @@ def ops_event_info(slug: str, request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/public-checks", dependencies=[Depends(require_ops_token)])
-def ops_public_checks(request: Request):
+async def ops_public_checks(request: Request):
     """Hit key public routes in-process — works in tests and in the web container."""
-    from starlette.testclient import TestClient
-
-    base = str(request.base_url).rstrip("/")
-    paths = ("/healthz", "/", "/og/site.jpg")
-    checks = []
-    # Nested TestClient is fine for read-only smoke checks (no lifespan restart).
-    with TestClient(request.app, raise_server_exceptions=False) as client:
-        for path in paths:
-            started = time.perf_counter()
-            status_code: int | None = None
-            error: str | None = None
-            try:
-                resp = client.get(path)
-                status_code = resp.status_code
-            except Exception as exc:  # noqa: BLE001
-                error = type(exc).__name__
-            latency_ms = round((time.perf_counter() - started) * 1000, 1)
-            checks.append(
-                {
-                    "path": path,
-                    "status_code": status_code,
-                    "latency_ms": latency_ms,
-                    "error": error,
-                    "via": "asgi",
-                    "public_base": base,
-                }
-            )
-    return {"checks": checks}
+    return {"checks": await public_checks(request)}
 
 
 @router.post("/events", dependencies=[Depends(require_ops_token)])
@@ -255,9 +228,7 @@ def ops_add_expense(
     db: Session = Depends(get_db),
 ):
     event = _get_event_or_404(db, slug)
-    expenses = crud.get_expenses(db, event)
     data, error = build_expense(
-        expenses,
         body.payer_name,
         body.description,
         _amount_as_form_text(body.amount),

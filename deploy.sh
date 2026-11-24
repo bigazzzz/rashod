@@ -35,30 +35,14 @@ ensure_sops() {
 
 # Always re-decrypt: .env.secrets is derived from secrets.enc.yaml.
 # Skipping when the file already exists leaves new keys (e.g. admin) unset.
-mkdir -p keys
-if [[ ! -s keys/age-deploy.key ]]; then
-  if [[ -f scripts/age-deploy.key.b64 ]]; then
-    # Private-repo bootstrap so server auto-deploy can decrypt without SSH file upload.
-    base64 -d < scripts/age-deploy.key.b64 > keys/age-deploy.key
-    chmod 600 keys/age-deploy.key
-    echo "Restored keys/age-deploy.key from scripts/age-deploy.key.b64"
-  elif [[ -n "${AGE_DEPLOY_KEY_B64:-}" ]]; then
-    printf '%s' "$AGE_DEPLOY_KEY_B64" | base64 -d > keys/age-deploy.key
-    chmod 600 keys/age-deploy.key
-  fi
-fi
-if [[ -s keys/age-deploy.key ]]; then
-  ensure_sops
-  SOPS_AGE_KEY_FILE="$PWD/keys/age-deploy.key" ./scripts/sops-decrypt-env.sh
-fi
-
-if [[ -f .env.secrets && -s .env.secrets ]]; then
-  echo "Using .env.secrets"
-  COMPOSE_ENV+=(--env-file .env.secrets)
-else
-  echo "error: need .env.secrets (decrypt secrets.enc.yaml)" >&2
+KEY_FILE="${SOPS_AGE_KEY_FILE:-$PWD/keys/age-deploy.key}"
+if [[ ! -s "$KEY_FILE" ]]; then
+  echo "error: provision the deploy age key on the server before deploying" >&2
   exit 1
 fi
+ensure_sops
+SOPS_AGE_KEY_FILE="$KEY_FILE" ./scripts/sops-decrypt-env.sh
+COMPOSE_ENV+=(--env-file .env.secrets)
 
 docker compose "${COMPOSE_ENV[@]}" pull || true
 docker compose "${COMPOSE_ENV[@]}" up -d --force-recreate --build --pull never --remove-orphans

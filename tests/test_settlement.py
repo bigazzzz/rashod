@@ -65,3 +65,10 @@ def test_rounding_residual_sums_to_total():
     paid_to_a = sum(t.amount for t in transfers if t.to_person == "A")
     assert paid_to_a == balances["A"]
     assert paid_to_a == Decimal("6.67")
+
+
+def test_two_cents_split_between_four_people():
+    totals = {"A": Decimal(".02"), **dict.fromkeys("BCD", Decimal(0))}
+    balances = compute_balances(totals)
+    shares = [paid - balances[name] for name, paid in totals.items()]
+    assert sorted(shares) == [Decimal(0), Decimal(0), Decimal(".01"), Decimal(".01")]

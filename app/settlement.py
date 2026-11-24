@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 CENT = Decimal("0.01")
 
@@ -30,8 +30,8 @@ def compute_balances(totals: dict[str, Decimal]) -> dict[str, Decimal]:
     """balance[person] = paid[person] - fair_share.
 
     Positive balance: overpaid, is owed money. Negative: underpaid, owes money.
-    Fair shares are rounded to the cent, with any rounding residue folded into
-    the last person (by iteration order) so balances always sum to zero.
+    Each person pays the base share in cents. The last participants in
+    iteration order cover one additional cent each until the remainder is paid.
     """
     people = list(totals.keys())
     n = len(people)
@@ -39,15 +39,14 @@ def compute_balances(totals: dict[str, Decimal]) -> dict[str, Decimal]:
         return {}
 
     total = sum(totals.values(), Decimal("0"))
-    raw_share = (total / n).quantize(CENT, rounding=ROUND_HALF_UP)
-
-    shares = {person: raw_share for person in people}
-    residual = total - (raw_share * n)
-    if residual != 0:
-        last_person = people[-1]
-        shares[last_person] = shares[last_person] + residual
-
-    return {person: totals[person] - shares[person] for person in people}
+    base_cents, remainder = divmod(int(total / CENT), n)
+    balances = {}
+    for index, person in enumerate(people):
+        share = base_cents
+        if index >= n - remainder:
+            share += 1
+        balances[person] = totals[person] - CENT * share
+    return balances
 
 
 def settle_debts(balances: dict[str, Decimal]) -> list[Transfer]:

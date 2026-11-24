@@ -1,4 +1,8 @@
 {$DOMAIN:localhost} {
+	@internal path /internal/ops /internal/ops/*
+	handle @internal {
+		respond 404
+	}
 	handle /mcp* {
 		reverse_proxy mcp:8080
 	}

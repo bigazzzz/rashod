@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import secrets
-import time
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
@@ -29,6 +28,7 @@ from app.metrics import (
     expenses_added_total,
 )
 from app.models import Event, Expense
+from app.public_checks import public_checks
 from app.og_image import OG_IMAGE_DIR, background_path_for, delete_background_for
 from app.rate_limit import limiter
 from app.routes.events import PUBLIC_BASE_URL
@@ -315,31 +315,10 @@ def admin_run_cleanup(
 
 
 @router.get("/checks")
-def admin_public_checks(request: Request):
+async def admin_public_checks(request: Request):
     if redir := _require_login(request):
         return redir
-    from starlette.testclient import TestClient
-
-    paths = ("/healthz", "/", "/og/site.jpg")
-    checks = []
-    with TestClient(request.app, raise_server_exceptions=False) as client:
-        for path in paths:
-            started = time.perf_counter()
-            status_code: int | None = None
-            error: str | None = None
-            try:
-                resp = client.get(path)
-                status_code = resp.status_code
-            except Exception as exc:  # noqa: BLE001
-                error = type(exc).__name__
-            checks.append(
-                {
-                    "path": path,
-                    "status_code": status_code,
-                    "latency_ms": round((time.perf_counter() - started) * 1000, 1),
-                    "error": error,
-                }
-            )
+    checks = await public_checks(request)
     return templates.TemplateResponse(
         request,
         "admin/checks.html",

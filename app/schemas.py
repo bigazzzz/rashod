@@ -22,11 +22,8 @@ class ExpenseCreate(BaseModel):
 
     @field_validator("payer_name")
     @classmethod
-    def not_blank(cls, v: str) -> str:
-        v = v.strip()
-        if not v:
-            raise ValueError("Поле не может быть пустым")
-        return v
+    def strip_payer_name(cls, v: str) -> str:
+        return v.strip()
 
     @field_validator("description")
     @classmethod
@@ -38,4 +35,9 @@ class ExpenseCreate(BaseModel):
     def amount_non_negative(cls, v: Decimal) -> Decimal:
         if v < 0:
             raise ValueError("Сумма не может быть отрицательной")
-        return v
+        if v > Decimal("99999999.99"):
+            raise ValueError("Максимальная сумма — 99 999 999,99")
+        rounded = v.quantize(Decimal("0.01"))
+        if v != rounded:
+            raise ValueError("Укажите сумму с точностью до копейки")
+        return rounded

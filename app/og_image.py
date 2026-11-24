@@ -14,13 +14,6 @@ HEIGHT = 630
 BG_PATH = Path(__file__).parent / "static" / "og-bg.jpg"
 OG_IMAGE_DIR = Path(os.environ.get("OG_IMAGE_DIR", "/data/og"))
 
-_FONT_CANDIDATES = (
-    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-    Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
-    Path("/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"),
-)
-
 log = logging.getLogger("og_image")
 
 
@@ -30,11 +23,8 @@ def _load_default_background() -> Image.Image:
     return image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
 
 
-def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for path in _FONT_CANDIDATES:
-        if path.exists():
-            return ImageFont.truetype(str(path), size=size)
-    return ImageFont.load_default()
+def _load_font(size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(str(Path(__file__).parent / "fonts" / "DejaVuSans-Bold.ttf"), size)
 
 
 def _split_oversized_word(

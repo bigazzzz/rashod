@@ -10,3 +10,4 @@ keys/*
 !keys/README.md
 *.age.key
 age.key
+*.key.b64

@@ -1,4 +1,3 @@
-import re
 from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -15,32 +14,19 @@ from app.schemas import ExpenseCreate
 
 router = APIRouter()
 
-_AUTO_PAYER_RE = re.compile(r"^User(\d+)$")
-
-
-def _next_auto_payer_name(expenses) -> str:
-    max_n = 0
-    for expense in expenses:
-        match = _AUTO_PAYER_RE.match(expense.payer_name)
-        if match:
-            max_n = max(max_n, int(match.group(1)))
-    return f"User{max_n + 1:03d}"
-
 
 def build_expense(
-    expenses,
     payer_name: str,
     description: str,
     amount: str,
 ) -> tuple[ExpenseCreate | None, str | None]:
     """Same rules as the public expense form. Returns (data, error)."""
-    resolved_name = (payer_name or "").strip() or _next_auto_payer_name(expenses)
     amount_raw = (amount or "").strip() or "0"
     try:
         parsed_amount = Decimal(amount_raw.replace(",", "."))
         resolved_description = "" if parsed_amount == 0 else description
         data = ExpenseCreate(
-            payer_name=resolved_name,
+            payer_name=payer_name,
             description=resolved_description,
             amount=parsed_amount,
         )
@@ -65,8 +51,7 @@ def create_expense(
     db: Session = Depends(get_db),
 ):
     event = _get_event_or_404(db, slug)
-    expenses = crud.get_expenses(db, event)
-    data, error = build_expense(expenses, payer_name, description, amount)
+    data, error = build_expense(payer_name, description, amount)
     if error or data is None:
         return render_event_page(request, db, event, error=error, status_code=400)
 

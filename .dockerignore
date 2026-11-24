@@ -6,3 +6,7 @@ venv/
 tests/
 .git/
 .claude/
+.env
+.env.secrets
+keys/
+*.key.b64
