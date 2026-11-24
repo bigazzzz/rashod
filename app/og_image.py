@@ -7,6 +7,9 @@ from datetime import datetime
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+from app.workers_ai import default_prompt_template
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
@@ -243,11 +246,33 @@ def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
     return final_path
 
 
+def read_cover_prompt() -> str:
+    """Read the template from the persistent cover volume, defaulting on first use."""
+    try:
+        return (OG_IMAGE_DIR / "cover-prompt.txt").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return default_prompt_template()
+
+
+def save_cover_prompt(template: str) -> None:
+    """Replace the saved template atomically so concurrent jobs read complete text."""
+    OG_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(dir=OG_IMAGE_DIR, mode="w", encoding="utf-8", delete=False) as file:
+        pending = Path(file.name)
+        try:
+            file.write(template)
+            file.flush()
+            pending.replace(OG_IMAGE_DIR / "cover-prompt.txt")
+        finally:
+            pending.unlink(missing_ok=True)
+
+
 async def generate_and_store_background(slug: str, event_name: str) -> None:
     """Background job: fetch from Cloudflare Workers AI and persist, or no-op on failure."""
     from app.workers_ai import fetch_cartoon_background
 
-    raw = await fetch_cartoon_background(event_name)
+    template = await asyncio.to_thread(read_cover_prompt)
+    raw = await fetch_cartoon_background(event_name, template=template)
     if not raw:
         return
     path = await asyncio.to_thread(save_generated_background, slug, raw)

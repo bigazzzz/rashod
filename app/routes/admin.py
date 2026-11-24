@@ -30,7 +30,7 @@ from app.metrics import (
 from app.models import Event, Expense
 from app.public_checks import public_checks
 from app.workers_ai import workers_ai_configured
-from app.og_image import OG_IMAGE_DIR, background_path_for, delete_background_for
+from app.og_image import OG_IMAGE_DIR, background_path_for, delete_background_for, read_cover_prompt, save_cover_prompt
 from app.rate_limit import limiter
 from app.routes.events import PUBLIC_BASE_URL
 from app.templating import templates
@@ -311,6 +311,44 @@ def admin_run_cleanup(
         "/admin/",
         notice=f"Cleanup: удалено событий — {deleted} (retention {RETENTION_DAYS} дн.)",
     )
+
+
+def _cover_prompt_page(request: Request, template: str, *, error: str = "", status: int = 200):
+    return templates.TemplateResponse(
+        request, "admin/cover_prompt.html",
+        {
+            "csrf_token": _ensure_csrf(request),
+            "template": template,
+            "error": error,
+            "notice": request.query_params.get("notice"),
+        },
+        status_code=status,
+    )
+
+
+@router.get("/cover-prompt")
+def admin_cover_prompt(request: Request):
+    """Show the saved prompt template to the signed-in administrator."""
+    if redir := _require_login(request):
+        return redir
+    return _cover_prompt_page(request, read_cover_prompt())
+
+
+@router.post("/cover-prompt")
+def admin_save_cover_prompt(request: Request, template: str = Form(""), csrf_token: str = Form("")):
+    """Validate and save the template used for subsequent cover generation."""
+    if redir := _require_login(request):
+        return redir
+    _verify_csrf(request, csrf_token)
+    template = template.replace("\r\n", "\n").strip()
+    if not template or len(template) > 2048:
+        return _cover_prompt_page(request, template, error="Введите от 1 до 2048 символов.", status=400)
+    try:
+        save_cover_prompt(template)
+    except OSError:
+        log.exception("Failed to save cover prompt")
+        return _cover_prompt_page(request, template, error="Не удалось сохранить запрос.", status=503)
+    return _flash_redirect("/admin/cover-prompt", notice="Запрос сохранён.")
 
 
 @router.get("/checks")

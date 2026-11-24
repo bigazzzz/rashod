@@ -9,14 +9,19 @@ from urllib.parse import quote
 import httpx
 
 
-def build_prompt(event_name: str) -> str:
-    """Describe the illustration in Russian using the original event title."""
-    title = event_name.strip() or "Событие"
+def default_prompt_template() -> str:
+    """Return the initial editable template for new event covers."""
     return (
-        f"Нарисуй яркую мультяшную иллюстрацию для события «{title}». "
+        "Нарисуй яркую мультяшную иллюстрацию для события «{event_name}». "
         "Широкий горизонтальный кадр, дружеская атмосфера. "
         "Оставь слева место для заголовка. Без надписей, логотипов и водяных знаков."
     )
+
+
+def build_prompt(event_name: str, template: str | None = None) -> str:
+    """Substitute the title literally and respect the model's 2048-character limit."""
+    template = default_prompt_template() if template is None else template
+    return template.replace("{event_name}", event_name.strip() or "Событие")[:2048]
 
 
 def _credentials() -> tuple[str, str]:
@@ -31,7 +36,7 @@ def workers_ai_configured() -> bool:
 
 
 async def fetch_cartoon_background(
-    event_name: str, *, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 10
+    event_name: str, *, template: str | None = None, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 10
 ) -> bytes | None:
     """Fetch one image within a total deadline, returning None on timeout or failure."""
     account, token = _credentials()
@@ -48,7 +53,7 @@ async def fetch_cartoon_background(
                 response = await client.post(
                     url,
                     headers={"Authorization": f"Bearer {token}"},
-                    json={"prompt": build_prompt(event_name), "steps": 4},
+                    json={"prompt": build_prompt(event_name, template), "steps": 4},
                 )
                 response.raise_for_status()
                 payload = response.json()

@@ -121,3 +121,49 @@ def test_robots_disallow_admin(client):
     resp = client.get("/robots.txt")
     assert resp.status_code == 200
     assert "Disallow: /admin" in resp.text
+
+
+def test_cover_prompt_access_requires_login(client, monkeypatch):
+    _enable_admin(monkeypatch)
+    url = "/admin/cover-prompt"
+    for response in (client.get(url, follow_redirects=False),
+                     client.post(url, data={"template": "Тест"}, follow_redirects=False)):
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login"
+
+
+def test_cover_prompt_edit_and_generation(client, monkeypatch, tmp_path):
+    import httpx
+    from app import og_image
+    from app.routes import ops
+
+    monkeypatch.setattr(og_image, "OG_IMAGE_DIR", tmp_path)
+    _login(client, monkeypatch)
+    url = "/admin/cover-prompt"
+    page = client.get(url)
+    assert page.status_code == 200
+    assert "{event_name}" in page.text
+    assert url in client.get("/admin/").text
+    token = _csrf_from(page.text)
+    template = "Нарисуй акварель.\nТема — {event_name}."
+    assert client.post(url, data={"template": template}).status_code == 403
+    assert client.post(url, data={"csrf_token": token, "template": template}).status_code == 200
+    assert template in client.get(url).text
+    for invalid in ["   ", "а" * 2049]:
+        assert client.post(url, data={"csrf_token": token, "template": invalid}).status_code == 400
+    assert template in client.get(url).text
+
+    prompts = []
+    async def capture(self, url, *, headers, json):
+        prompts.append(json["prompt"])
+        return httpx.Response(200, request=httpx.Request("POST", url), json={"success": False})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", capture)
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "test")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "account")
+    monkeypatch.setattr("app.routes.events.generate_and_store_background", og_image.generate_and_store_background)
+    monkeypatch.setattr(ops, "generate_and_store_background", og_image.generate_and_store_background)
+    monkeypatch.setattr(ops, "OPS_TOKEN", "test")
+    client.post("/events", data={"name": "Алтай"}, follow_redirects=False)
+    client.post("/internal/ops/events", headers={"X-Ops-Token": "test"}, json={"name": "Поход"})
+    assert prompts == ["Нарисуй акварель.\nТема — Алтай.", "Нарисуй акварель.\nТема — Поход."]
