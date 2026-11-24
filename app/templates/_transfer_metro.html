@@ -36,7 +36,7 @@
   </div>
   <ul class="metro-list">
     {% for t in transfers %}
-    <li data-from="{{ t.from_person }}" data-to="{{ t.to_person }}" data-kopecks="{{ (t.amount * 100)|int }}"><span>{{ t.from_person }} → {{ t.to_person }}:</span> <strong>{{ "%.2f"|format(t.amount) }} ₽</strong></li>
+    <li data-from="{{ t.from_person }}" data-to="{{ t.to_person }}" data-kopecks="{{ (t.amount * 100)|int }}"><span>{{ t.from_person }} → {{ t.to_person }}</span> <strong>{{ "%.2f"|format(t.amount) }} ₽</strong></li>
     {% endfor %}
   </ul>
 </section>
