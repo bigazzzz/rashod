@@ -1,6 +1,11 @@
+import asyncio
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock
+from urllib.parse import unquote
+
+import httpx
+import pytest
 
 from PIL import Image
 
@@ -10,11 +15,10 @@ from app.og_image import (
     HEIGHT,
     background_path_for,
     delete_background_for,
-    generate_and_store_background,
     render_event_og_jpeg,
     save_generated_background,
 )
-from app.pollinations import build_prompt, event_name_to_english, fetch_cartoon_background
+from app.pollinations import fetch_cartoon_background
 
 
 def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
@@ -23,67 +27,50 @@ def _tiny_jpeg_bytes(color=(40, 80, 120)) -> bytes:
     return buf.getvalue()
 
 
-def test_event_name_to_english_translates_common_phrases():
-    assert "birthday" in event_name_to_english("День рождения Маши").lower()
-    assert "picnic" in event_name_to_english("Пикник в парке").lower()
-    assert "hiking" in event_name_to_english("Поход на Алтай").lower()
-    # Already Latin — keep as-is (normalized)
-    assert event_name_to_english("Team dinner").lower() == "team dinner"
+@pytest.mark.parametrize("key", ["", "test-key"])
+def test_fetch_sends_full_russian_prompt(monkeypatch, key):
+    monkeypatch.setenv("POLLINATIONS_API_KEY", key)
+    title = "Пикник у Маши / на Волге?"
+    payload = _tiny_jpeg_bytes()
+
+    def respond(request):
+        if key:
+            assert request.url.host == "gen.pollinations.ai"
+            assert request.headers["Authorization"] == f"Bearer {key}"
+        else:
+            assert "Authorization" not in request.headers
+        prompt = unquote(request.url.raw_path.split(b"?", 1)[0].decode())
+        assert title in prompt
+        assert "мультяшную" in prompt and "слева" in prompt and "Без надписей" in prompt
+        return httpx.Response(200, content=payload)
+
+    assert asyncio.run(fetch_cartoon_background(title, transport=httpx.MockTransport(respond))) == payload
 
 
-def test_build_prompt_uses_english_subject_and_no_text():
-    prompt = build_prompt("Поход на Алтай")
-    assert "Поход" not in prompt
-    assert "hiking" in prompt.lower()
-    assert "no text" in prompt
-    assert "cartoon" in prompt.lower()
+@pytest.mark.parametrize("status", [403, 429, 503])
+def test_provider_errors_stop_after_one_request(status):
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx.Response(status)
+
+    assert asyncio.run(fetch_cartoon_background("Ужин", transport=httpx.MockTransport(respond))) is None
+    assert len(requests) == 1
 
 
-def test_fetch_returns_none_on_http_error_real_type():
-    import urllib.error
+def test_slow_download_is_cancelled():
+    cancelled = []
 
-    def boom(*_args, **_kwargs):
-        raise urllib.error.HTTPError(
-            url="http://x", code=500, msg="err", hdrs=None, fp=None
-        )
+    async def respond(request):
+        try:
+            await asyncio.sleep(60)
+        finally:
+            cancelled.append(True)
 
-    with patch("app.pollinations.urllib.request.urlopen", side_effect=boom):
-        with patch("app.pollinations.time.sleep", return_value=None):
-            assert fetch_cartoon_background("test") is None
-
-
-def test_fetch_returns_none_on_client_error_without_retry_storm():
-    import urllib.error
-
-    calls = {"n": 0}
-
-    def boom(*_args, **_kwargs):
-        calls["n"] += 1
-        raise urllib.error.HTTPError(
-            url="http://x", code=403, msg="forbidden", hdrs=None, fp=None
-        )
-
-    with patch("app.pollinations.urllib.request.urlopen", side_effect=boom):
-        with patch("app.pollinations.time.sleep", return_value=None):
-            assert fetch_cartoon_background("test") is None
-    assert calls["n"] == 1
-
-
-def test_fetch_returns_bytes_on_success():
-    payload = _tiny_jpeg_bytes() * 20  # > 1000 bytes
-
-    class Resp:
-        def read(self):
-            return payload
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-    with patch("app.pollinations.urllib.request.urlopen", return_value=Resp()):
-        assert fetch_cartoon_background("Ужин") == payload
+    result = asyncio.run(fetch_cartoon_background("Ужин", transport=httpx.MockTransport(respond), timeout=0.05))
+    assert result is None
+    assert cancelled == [True]
 
 
 def test_save_and_render_uses_custom_background():
@@ -110,23 +97,23 @@ def test_generate_and_store_persists_when_fetch_ok(monkeypatch):
     slug = "genstoreokslug001"
     monkeypatch.setattr(
         "app.pollinations.fetch_cartoon_background",
-        lambda name: _tiny_jpeg_bytes((10, 200, 10)) * 30,
+        AsyncMock(return_value=_tiny_jpeg_bytes((10, 200, 10))),
     )
     # Call the real function (autouse mock targets app.og_image.generate_and_store_background
     # only when scheduled via routes — call module function directly).
     from app import og_image
 
-    og_image.generate_and_store_background(slug, "Пикник")
+    asyncio.run(og_image.generate_and_store_background(slug, "Пикник"))
     assert background_path_for(slug) is not None
     delete_background_for(slug)
 
 
 def test_generate_and_store_noop_when_fetch_fails(monkeypatch):
     slug = "genstorefailslug01"
-    monkeypatch.setattr("app.pollinations.fetch_cartoon_background", lambda name: None)
+    monkeypatch.setattr("app.pollinations.fetch_cartoon_background", AsyncMock(return_value=None))
     from app import og_image
 
-    og_image.generate_and_store_background(slug, "Ничего")
+    asyncio.run(og_image.generate_and_store_background(slug, "Ничего"))
     assert background_path_for(slug) is None
 
 
@@ -136,7 +123,19 @@ def test_og_route_ok_without_ai_background(client):
     ].split("/e/")[1]
     response = client.get(f"/og/{slug}.jpg")
     assert response.status_code == 200
-    assert response.content[:3] == b"\xff\xd8\xff"
+    assert response.content == client.get("/og/site.jpg").content
+
+
+def test_invalid_provider_image_leaves_homepage_card(client, monkeypatch):
+    from app.og_image import generate_and_store_background
+
+    monkeypatch.setattr("app.routes.events.generate_and_store_background", generate_and_store_background)
+    monkeypatch.setattr("app.pollinations.fetch_cartoon_background", AsyncMock(return_value=b"invalid image"))
+    response = client.post("/events", data={"name": "Пикник"}, follow_redirects=False)
+    assert response.status_code == 303
+    slug = response.headers["location"].split("/")[-1]
+    assert background_path_for(slug) is None
+    assert client.get(f"/og/{slug}.jpg").content == client.get("/og/site.jpg").content
 
 
 def test_og_route_uses_saved_background(client):
@@ -150,6 +149,7 @@ def test_og_route_uses_saved_background(client):
     response = client.get(f"/og/{slug}.jpg")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("image/jpeg")
+    assert response.content != client.get("/og/site.jpg").content
     assert len(response.content) > 5_000
 
 

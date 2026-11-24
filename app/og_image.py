@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -136,17 +137,6 @@ def cleanup_stale_og_backgrounds(cutoff: datetime) -> int:
     return removed
 
 
-def _load_background_image(path: Path | None) -> Image.Image:
-    if path is None:
-        return _load_default_background().copy()
-    try:
-        image = Image.open(path).convert("RGB")
-        return image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-    except OSError as exc:
-        log.warning("Bad OG background %s (%s); using default", path, exc)
-        return _load_default_background().copy()
-
-
 def compose_og(event_name: str, background: Image.Image) -> Image.Image:
     base = background.convert("RGBA")
     if base.size != (WIDTH, HEIGHT):
@@ -194,13 +184,18 @@ def compose_og(event_name: str, background: Image.Image) -> Image.Image:
 
 @lru_cache(maxsize=256)
 def _render_cached(slug: str, event_name: str, bg_mtime_ns: int) -> bytes:
-    path: Path | None = None
-    if bg_mtime_ns > 0:
-        candidate = OG_IMAGE_DIR / f"{slug}.jpg"
-        if candidate.is_file():
-            path = candidate
+    if bg_mtime_ns:
+        try:
+            with Image.open(OG_IMAGE_DIR / f"{slug}.jpg") as image:
+                background = image.convert("RGB")
+        except OSError:
+            return render_site_og_jpeg()
+    elif slug:
+        return render_site_og_jpeg()
+    else:
+        background = _load_default_background()
     buf = BytesIO()
-    compose_og(event_name, _load_background_image(path)).save(
+    compose_og(event_name, background).save(
         buf, format="JPEG", quality=85, optimize=True, progressive=True
     )
     return buf.getvalue()
@@ -209,15 +204,16 @@ def _render_cached(slug: str, event_name: str, bg_mtime_ns: int) -> bytes:
 def render_event_og_jpeg(event_name: str, slug: str | None = None) -> bytes:
     """Compose OG card. Optional slug picks AI background from OG_IMAGE_DIR."""
     if not slug:
-        buf = BytesIO()
-        compose_og(event_name, _load_default_background().copy()).save(
-            buf, format="JPEG", quality=85, optimize=True, progressive=True
-        )
-        return buf.getvalue()
+        return _render_cached("", event_name, 0)
 
     path = background_path_for(slug)
     mtime_ns = path.stat().st_mtime_ns if path is not None else 0
     return _render_cached(slug, event_name, mtime_ns)
+
+
+def render_site_og_jpeg() -> bytes:
+    """Return the homepage card, also used until an event background is available."""
+    return render_event_og_jpeg("Посчитать поровну чек")
 
 
 def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
@@ -247,13 +243,13 @@ def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
     return final_path
 
 
-def generate_and_store_background(slug: str, event_name: str) -> None:
+async def generate_and_store_background(slug: str, event_name: str) -> None:
     """Background job: fetch from Pollinations and persist, or no-op on failure."""
     from app.pollinations import fetch_cartoon_background
 
-    raw = fetch_cartoon_background(event_name)
+    raw = await fetch_cartoon_background(event_name)
     if not raw:
         return
-    path = save_generated_background(slug, raw)
+    path = await asyncio.to_thread(save_generated_background, slug, raw)
     if path:
         log.info("Stored Pollinations OG background for %s at %s", slug, path)

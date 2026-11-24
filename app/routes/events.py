@@ -19,6 +19,7 @@ from app.og_image import (
     background_path_for,
     generate_and_store_background,
     render_event_og_jpeg,
+    render_site_og_jpeg,
 )
 from app.rate_limit import limiter
 from app.schemas import EventCreate
@@ -154,9 +155,6 @@ def render_event_page(
     return templates.TemplateResponse(request, "event.html", context, status_code=status_code)
 
 
-SITE_OG_TITLE = "Посчитать поровну чек"
-
-
 def _public_base_url(request: Request) -> str:
     if PUBLIC_BASE_URL:
         return PUBLIC_BASE_URL.rstrip("/")
@@ -246,7 +244,7 @@ def _og_image_response(event) -> Response:
 @router.api_route("/og/site.jpg", methods=["GET", "HEAD"])
 def site_og_image():
     """Homepage / share preview — composed default card (must be before /og/{slug}.jpg)."""
-    image = render_event_og_jpeg(SITE_OG_TITLE)
+    image = render_site_og_jpeg()
     return _jpeg_response(image, etag=f'"site-{len(image)}"', max_age=3600)
 
 
