@@ -19,7 +19,7 @@
     {% if contribution_groups[0][2] %}
       <svg class="contributions-chart" viewBox="0 0 208 208" role="group" aria-label="Взносы и переводы участников">
         {% for amount, people, radius in contribution_groups if radius %}
-          <circle class="contribution-circle" cx="104" cy="104" r="{{ radius }}"
+          <circle class="contribution-circle" data-contribution-circle="{{ loop.index0 }}" cx="104" cy="104" r="{{ radius }}"
             style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
             {% if amount == common_contribution %}data-common{% endif %}>
             <title>{{ contribution_description(amount, people) }}</title>
@@ -35,7 +35,7 @@
               style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
               {% if amount == common_contribution and radius %}data-common{% endif %}
               {% if not radius %}data-zero{% endif %}></span>
-            <span>{{ people | join(", ") }}</span>
+            <span{% if radius %} tabindex="0" data-contribution-label="{{ loop.index0 }}"{% endif %}>{{ people | join(", ") }}</span>
             <strong>{{ "%.2f"|format(amount) }} ₽</strong>
           </li>
         {% endfor %}
@@ -46,3 +46,4 @@
     </div>
   </div>
 </figure>
+<script src="/static/contributions.js" defer></script>
