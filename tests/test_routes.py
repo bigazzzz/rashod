@@ -1,3 +1,6 @@
+import pytest
+
+
 def create_event(client, name="Поездка на дачу"):
     response = client.post("/events", data={"name": name}, follow_redirects=False)
     assert response.status_code == 303
@@ -592,3 +595,30 @@ def test_no_transfer_map_when_everyone_is_even(client):
     html = client.get(f"/r/{slug}").text
     assert 'id="transfer-metro"' not in html
     assert "Все квиты" in html
+    assert 'id="contribution-circles"' not in html
+
+
+@pytest.mark.parametrize(
+    ("amounts", "common", "to_transfer", "circle_count"),
+    [
+        (("100", "100", "100"), "100.00", "0.00", 1),
+        (("100", "50", "25"), "25.00", "41.67", 3),
+        (("100", "0", "0"), "0.00", "66.67", 1),
+        (("0", "0", "0"), "0.00", "0.00", 0),
+    ],
+)
+def test_results_contribution_circles(client, amounts, common, to_transfer, circle_count):
+    slug = create_event(client)
+    for name, amount in zip(("Аня", "Олег", "Лена"), amounts):
+        response = client.post(
+            f"/e/{slug}/expenses",
+            data={"payer_name": name, "amount": amount},
+            follow_redirects=False,
+        )
+        assert response.is_redirect
+
+    html = client.get(f"/r/{slug}").text
+    assert 'id="contribution-circles"' in html
+    assert f'Общая часть взносов <strong>{common} ₽ с человека</strong>' in html
+    assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
+    assert html.count('class="contribution-circle"') == circle_count

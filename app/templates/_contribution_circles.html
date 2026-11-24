@@ -1,0 +1,35 @@
+<figure id="contribution-circles" class="contributions">
+  <figcaption>
+    <h3>Круги взносов</h3>
+    <p>Чем больше взнос, тем больше площадь круга.
+      {% if common_contribution %}Золотой центр — часть взноса, которую уже внёс каждый.{% endif %}
+    </p>
+  </figcaption>
+  <div class="contributions-body">
+    {% if contribution_groups[0][2] %}
+      <svg class="contributions-chart" viewBox="0 0 208 208" aria-hidden="true">
+        {% for amount, people, radius in contribution_groups if radius %}
+          <circle class="contribution-circle" cx="104" cy="104" r="{{ radius }}"
+            style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
+            {% if amount == common_contribution %}data-common{% endif %}/>
+        {% endfor %}
+      </svg>
+    {% endif %}
+    <div>
+      <ul class="contributions-legend">
+        {% for amount, people, radius in contribution_groups %}
+          <li>
+            <span class="contribution-swatch" aria-hidden="true"
+              style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
+              {% if amount == common_contribution and radius %}data-common{% endif %}
+              {% if not radius %}data-zero{% endif %}></span>
+            <span>{{ people | join(", ") }}</span>
+            <strong>{{ "%.2f"|format(amount) }} ₽</strong>
+          </li>
+        {% endfor %}
+      </ul>
+      <p>Общая часть взносов <strong>{{ "%.2f"|format(common_contribution) }} ₽ с человека</strong></p>
+      <p>Осталось перевести <strong>{{ "%.2f"|format(transfer_total) }} ₽</strong></p>
+    </div>
+  </div>
+</figure>

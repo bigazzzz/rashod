@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block styles %}<link rel="stylesheet" href="/static/metro.css?v=2">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/static/metro.css?v=3">{% endblock %}
 {% block title %}Результаты — {{ event.name }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block og_title %}Результаты · {{ event.name }}{% endblock %}
@@ -22,6 +22,9 @@
     {% include "_transfer_metro.html" %}
   {% else %}
     <p>Все квиты, переводов не требуется.</p>
+  {% endif %}
+  {% if contribution_groups %}
+    {% include "_contribution_circles.html" %}
   {% endif %}
 
   <h2>Кто сколько потратил</h2>

@@ -4,6 +4,7 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from math import sqrt
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
@@ -358,11 +359,25 @@ def results_csv(request: Request, slug: str, db: Session = Depends(get_db)):
 @router.head("/r/{slug}", include_in_schema=False)
 @router.get("/r/{slug}")
 def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
+    """Показать расчёт переводов и диаграмму взносов."""
     event = _get_event_or_404(db, slug)
+    context = _results_context(request, db, event)
+    totals = context["totals"]
+    if totals:
+        people_by_amount: dict[Decimal, list[str]] = {}
+        for person, amount in totals.items():
+            people_by_amount.setdefault(amount, []).append(person)
+        largest = max(people_by_amount)
+        context["contribution_groups"] = [
+            (amount, people_by_amount[amount], 100 * sqrt(amount / largest) if largest else 0)
+            for amount in sorted(people_by_amount, reverse=True)
+        ]
+        context["common_contribution"] = min(people_by_amount)
+        context["transfer_total"] = sum(transfer.amount for transfer in context["transfers"])
     return templates.TemplateResponse(
         request,
         "results.html",
-        _results_context(request, db, event),
+        context,
     )
 
 

@@ -1,3 +1,51 @@
+.contributions {
+  margin: 16px 0 0;
+  padding: clamp(14px, 4vw, 22px);
+  border: 1px solid rgba(248, 236, 217, .15);
+  border-radius: 14px;
+  background: var(--navy-deep);
+  color: var(--card-text);
+  font-family: Arial, system-ui, sans-serif;
+}
+.contributions h3 { margin: 0 0 8px; }
+.contributions p { margin: 0; line-height: 1.45; }
+.contributions p + p { margin-top: 6px; }
+.contributions figcaption p { color: var(--card-text-dim); }
+.contributions-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.contributions-chart { display: block; width: min(100%, 208px); margin-inline: auto; }
+.contribution-circle {
+  fill: color-mix(in srgb, var(--mark-color, var(--circle-color)) 16%, var(--navy-deep));
+  stroke: var(--mark-color, var(--circle-color));
+  stroke-width: 2;
+}
+.contributions [data-common] { --mark-color: var(--gold); }
+.contributions-legend { list-style: none; margin: 0 0 12px; padding: 0; }
+.contributions .contributions-legend li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 0;
+  background: transparent;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+.contributions-legend strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.contribution-swatch {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--mark-color, var(--circle-color));
+  border-radius: 50%;
+}
+.contribution-swatch[data-zero] { border-color: var(--card-text-dim); border-style: dashed; }
+
 .metro {
   --divider: rgba(248, 236, 217, .15);
   color: var(--card-text);
