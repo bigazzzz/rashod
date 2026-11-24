@@ -25,13 +25,12 @@
   stroke-width: 2;
 }
 .contributions [data-common] { --mark-color: var(--gold); }
-.contribution-circle:hover,
 .contribution-circle.is-hovered,
 .contribution-circle.is-focused {
   fill: color-mix(in srgb, var(--mark-color, var(--circle-color)) 38%, var(--navy-deep));
   stroke-width: 4;
 }
-.contributions [data-contribution-label]:focus-visible {
+.contributions [data-contribution-row]:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
   border-radius: 2px;
@@ -43,10 +42,15 @@
   align-items: baseline;
   gap: 8px;
   margin: 0;
-  padding: 5px 0;
+  padding: 5px 8px;
   background: transparent;
   border: 0;
+  border-radius: 6px;
   overflow-wrap: anywhere;
+}
+.contributions .contributions-legend li.is-hovered,
+.contributions .contributions-legend li:focus {
+  background: rgba(248, 236, 217, .13);
 }
 .contributions-legend strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .contribution-swatch {

@@ -30,12 +30,12 @@
     <div>
       <ul class="contributions-legend">
         {% for amount, people, radius in contribution_groups %}
-          <li title="{{ contribution_description(amount, people) }}">
+          <li{% if radius %} tabindex="0" data-contribution-row="{{ loop.index0 }}"{% endif %} title="{{ contribution_description(amount, people) }}">
             <span class="contribution-swatch" aria-hidden="true"
               style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
               {% if amount == common_contribution and radius %}data-common{% endif %}
               {% if not radius %}data-zero{% endif %}></span>
-            <span{% if radius %} tabindex="0" data-contribution-label="{{ loop.index0 }}"{% endif %}>{{ people | join(", ") }}</span>
+            <span>{{ people | join(", ") }}</span>
             <strong>{{ "%.2f"|format(amount) }} ₽</strong>
           </li>
         {% endfor %}
@@ -46,4 +46,4 @@
     </div>
   </div>
 </figure>
-<script src="/static/contributions.js" defer></script>
+<script src="/static/contributions.js?v=2" defer></script>

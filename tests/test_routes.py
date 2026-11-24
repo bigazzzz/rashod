@@ -625,7 +625,10 @@ def test_results_contribution_circles(client, amounts, common, to_transfer, circ
     assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
     assert html.count('class="contribution-circle"') == circle_count
     assert html.count("data-contribution-circle=") == circle_count
-    assert html.count('tabindex="0" data-contribution-label=') == circle_count
+    assert html.count('<li tabindex="0" data-contribution-row=') == circle_count
+    for index in range(circle_count):
+        assert f'data-contribution-circle="{index}"' in html
+        assert f'data-contribution-row="{index}"' in html
     if amounts == ("100", "50", "25"):
         assert "Аня — потрачено 100.00 ₽. Никому не должен." in html
         assert "Олег — потрачено 50.00 ₽. Кому перевести: Аня — 8.33 ₽." in html
