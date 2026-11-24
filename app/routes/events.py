@@ -373,7 +373,12 @@ def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
             for amount in sorted(people_by_amount, reverse=True)
         ]
         context["common_contribution"] = min(people_by_amount)
-        context["transfer_total"] = sum(transfer.amount for transfer in context["transfers"])
+        transfers = context["transfers"]
+        outgoing = {}
+        for transfer in transfers:
+            outgoing.setdefault(transfer.from_person, []).append(transfer)
+        context["contribution_outgoing"] = outgoing
+        context["transfer_total"] = sum(transfer.amount for transfer in transfers)
     return templates.TemplateResponse(
         request,
         "results.html",

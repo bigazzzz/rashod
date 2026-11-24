@@ -624,3 +624,10 @@ def test_results_contribution_circles(client, amounts, common, to_transfer, circ
     assert f'Общая часть взносов <strong>{common} ₽ с человека</strong>' in html
     assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
     assert html.count('class="contribution-circle"') == circle_count
+    if amounts == ("100", "50", "25"):
+        assert "Аня — потрачено 100.00 ₽. Никому не должен." in html
+        assert "Олег — потрачено 50.00 ₽. Кому перевести: Аня — 8.33 ₽." in html
+        assert "Лена — потрачено 25.00 ₽. Кому перевести: Аня — 33.34 ₽." in html
+    if amounts == ("100", "100", "100"):
+        for name in ("Аня", "Олег", "Лена"):
+            assert f"{name} — потрачено 100.00 ₽. Никому не должен." in html

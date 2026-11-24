@@ -268,6 +268,7 @@ def admin_event_detail(request: Request, slug: str, db: Session = Depends(get_db
             "urls": {
                 "event": f"{base}/e/{event.slug}",
                 "results": f"{base}/r/{event.slug}",
+                "expense_log": f"{base}/l/{event.slug}",
                 "og": f"{base}/og/{event.slug}.jpg",
             },
             "notice": request.query_params.get("notice"),

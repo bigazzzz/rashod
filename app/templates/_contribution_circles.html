@@ -1,3 +1,13 @@
+{% macro contribution_description(amount, people) -%}
+  {% for person in people -%}
+    {{ person }} — потрачено {{ "%.2f"|format(amount) }} ₽.
+    {%- set outgoing = contribution_outgoing.get(person) -%}
+    {% if outgoing %} Кому перевести: {% for transfer in outgoing %}{{ transfer.to_person }} — {{ "%.2f"|format(transfer.amount) }} ₽{% if not loop.last %}, {% endif %}{% endfor %}.
+    {%- else %} Никому не должен.
+    {%- endif %}
+    {%- if not loop.last %}{{ "\n" }}{% endif -%}
+  {% endfor %}
+{%- endmacro %}
 <figure id="contribution-circles" class="contributions">
   <figcaption>
     <h3>Круги взносов</h3>
@@ -7,18 +17,20 @@
   </figcaption>
   <div class="contributions-body">
     {% if contribution_groups[0][2] %}
-      <svg class="contributions-chart" viewBox="0 0 208 208" aria-hidden="true">
+      <svg class="contributions-chart" viewBox="0 0 208 208" role="group" aria-label="Взносы и переводы участников">
         {% for amount, people, radius in contribution_groups if radius %}
           <circle class="contribution-circle" cx="104" cy="104" r="{{ radius }}"
             style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
-            {% if amount == common_contribution %}data-common{% endif %}/>
+            {% if amount == common_contribution %}data-common{% endif %}>
+            <title>{{ contribution_description(amount, people) }}</title>
+          </circle>
         {% endfor %}
       </svg>
     {% endif %}
     <div>
       <ul class="contributions-legend">
         {% for amount, people, radius in contribution_groups %}
-          <li>
+          <li title="{{ contribution_description(amount, people) }}">
             <span class="contribution-swatch" aria-hidden="true"
               style="--circle-color: hsl({{ (loop.index0 * 137 + 175) % 360 }} 65% 69%)"
               {% if amount == common_contribution and radius %}data-common{% endif %}

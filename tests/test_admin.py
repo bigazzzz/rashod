@@ -66,6 +66,9 @@ def test_admin_login_flow_and_dashboard_tops(client, monkeypatch):
     assert "Top Event" in dash.text
     assert "Общий ужин" in dash.text or "общий ужин" in dash.text
     assert "HiddenName" not in dash.text
+    detail = client.get(f"/admin/events/{slug}")
+    assert detail.status_code == 200
+    assert f'href="http://testserver/l/{slug}">Лог трат</a>' in detail.text
 
 
 def test_admin_rejects_bad_password(client, monkeypatch):
