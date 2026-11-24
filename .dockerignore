@@ -10,3 +10,4 @@ tests/
 .env.secrets
 keys/
 *.key.b64
+cloudflare.enc.yaml

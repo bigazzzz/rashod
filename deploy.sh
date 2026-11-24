@@ -42,7 +42,13 @@ if [[ ! -s "$KEY_FILE" ]]; then
 fi
 ensure_sops
 SOPS_AGE_KEY_FILE="$KEY_FILE" ./scripts/sops-decrypt-env.sh
-COMPOSE_ENV+=(--env-file .env.secrets)
+cloudflare_env=$(mktemp)
+trap 'rm -f "$cloudflare_env"' EXIT
+SOPS_AGE_KEY_FILE="$KEY_FILE" SOPS_SECRETS_FILE="$PWD/cloudflare.enc.yaml" \
+  SOPS_DOTENV_OUT="$cloudflare_env" ./scripts/sops-decrypt-env.sh
+# Compose normally gives shell variables precedence over --env-file.
+unset CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
+COMPOSE_ENV+=(--env-file .env.secrets --env-file "$cloudflare_env")
 
 docker compose "${COMPOSE_ENV[@]}" pull || true
 docker compose "${COMPOSE_ENV[@]}" up -d --force-recreate --build --pull never --remove-orphans
