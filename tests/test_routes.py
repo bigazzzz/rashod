@@ -584,8 +584,10 @@ def test_results_metro_uses_settlement_amounts_and_canonical_names(client):
     assert 'data-view="list" aria-pressed="true"' in html
     assert 'class="metro-map" hidden' in html
     assert 'id="transfer-metro"' in html
-    assert html.index("Доля каждого") < html.index("Сумма переводов")
-    assert "<span>Доля каждого</span>\n    <strong>10.01 ₽</strong>" in html
+    metro = html.split('id="transfer-metro"', 1)[1].split("</section>", 1)[0]
+    assert metro.count("Доля каждого") == 1
+    assert "Сумма переводов" not in metro
+    assert '<div class="metro-total">\n      <span>Доля каждого</span>\n      <strong>10.01 ₽</strong>' in metro
     assert 'data-from="Олег" data-to="Аня" data-kopecks="1001"' in html
     assert '<span>Олег → Аня</span> <strong>10.01 ₽</strong>' in html
     assert '<details class="metro-picker">' in html
@@ -627,7 +629,7 @@ def test_results_contribution_circles(client, amounts, common, to_transfer, shar
     assert f'Всего потрачено <strong>{sum(map(float, amounts)):.2f} ₽</strong>' in html
     assert f'Общая часть взносов <strong>{common} ₽ с человека</strong>' in html
     assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
-    assert f"<span>Доля каждого</span>\n    <strong>{share} ₽</strong>" in html
+    assert f"<span>Доля каждого</span>\n      <strong>{share} ₽</strong>" in html
     assert html.count('class="contribution-circle"') == circle_count
     marker_count = 1 if circle_count else 0
     assert html.count("data-contribution-circle=") == circle_count + marker_count

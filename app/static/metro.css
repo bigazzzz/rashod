@@ -87,18 +87,7 @@
   gap: 12px;
 }
 .metro-head { padding: 22px 20px 17px; align-items: start; }
-.metro-share {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--divider);
-  font-size: 14px;
-  color: var(--card-text-dim);
-}
-.metro-share strong { color: var(--card-text); font-size: 18px; font-variant-numeric: tabular-nums; }
-.metro-no-transfers { margin: 0; padding: 14px 20px; }
+.metro-no-transfers { margin: 0; padding: 0 20px 17px; }
 .metro-total, .metro-filter { display: grid; gap: 6px; min-width: 0; }
 .metro-total span, .metro-filter {
   font-size: 13px;
@@ -201,7 +190,7 @@
 .metro-list strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .metro .metro-list li:last-child { border: 0; }
 @media (max-width: 480px) {
-  .metro-share, .metro-no-transfers { padding-inline: 12px; }
+  .metro-no-transfers { padding-inline: 12px; }
   .metro-head { padding: 16px 12px 15px; }
   .metro-bar { padding: 0 12px 12px; }
   .metro-sides { padding-inline: 10px; }

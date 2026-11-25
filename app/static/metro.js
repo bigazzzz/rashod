@@ -92,7 +92,6 @@
   function update() {
     const name = selected.dataset.person;
     const related = new Set();
-    let total = 0;
     let count = 0;
     for (const payment of payments) {
       const active = !name || payment.from === name || payment.to === name;
@@ -100,7 +99,6 @@
       payment.fare.classList.toggle("is-muted", !active);
       payment.item.hidden = !active;
       if (active) {
-        total += payment.cents;
         count++;
         related.add(payment.from);
         related.add(payment.to);
@@ -110,10 +108,6 @@
       person.station.classList.toggle("is-muted", !related.has(person.name));
       person.station.setAttribute("aria-pressed", String(person.name === name));
     }
-    const side = people.get(name)?.side;
-    const label = side === "from" ? "Перевести" : "Получить";
-    root.querySelector("[data-total-label]").textContent = name && side ? label + " · " + name : "Сумма переводов";
-    root.querySelector("[data-total]").textContent = name && !count ? "Все квиты" : money.format(total / 100);
     root.querySelector(".metro-count").textContent = count + " " + counts[plural.select(count)];
     map.hidden = view !== "map" || !count;
     list.hidden = !count;
@@ -149,5 +143,6 @@
     update();
   });
   update();
+  root.querySelector(".metro-filter").hidden = false;
   root.querySelector(".metro-interactive").hidden = false;
 })();

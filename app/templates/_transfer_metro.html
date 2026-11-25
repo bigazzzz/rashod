@@ -1,26 +1,24 @@
 <section{% if transfers %} id="transfer-metro"{% endif %} class="metro" aria-label="Переводы">
-  <div class="metro-share">
-    <span>Доля каждого</span>
-    <strong>{{ share_amount }} ₽</strong>
-  </div>
+  <header class="metro-head">
+    <div class="metro-total">
+      <span>Доля каждого</span>
+      <strong>{{ share_amount }} ₽</strong>
+    </div>
+    {% if transfers %}
+    <div class="metro-filter" hidden>
+      <span id="metro-filter-label">Участник</span>
+      <details class="metro-picker">
+        <summary aria-labelledby="metro-filter-label metro-filter-value"><span id="metro-filter-value">Все участники</span></summary>
+        <div class="metro-options" role="group" aria-labelledby="metro-filter-label">
+          <button type="button" data-person="" aria-pressed="true">Все участники</button>
+          {% for person in totals %}<button type="button" data-person="{{ person }}" aria-pressed="false">{{ person }}</button>{% endfor %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </header>
   {% if transfers %}
   <div class="metro-interactive" hidden>
-    <header class="metro-head">
-      <div class="metro-total" aria-live="polite">
-        <span data-total-label>Сумма переводов</span>
-        <strong data-total></strong>
-      </div>
-      <div class="metro-filter">
-        <span id="metro-filter-label">Участник</span>
-        <details class="metro-picker">
-          <summary aria-labelledby="metro-filter-label metro-filter-value"><span id="metro-filter-value">Все участники</span></summary>
-          <div class="metro-options" role="group" aria-labelledby="metro-filter-label">
-            <button type="button" data-person="" aria-pressed="true">Все участники</button>
-            {% for person in totals %}<button type="button" data-person="{{ person }}" aria-pressed="false">{{ person }}</button>{% endfor %}
-          </div>
-        </details>
-      </div>
-    </header>
     <div class="metro-bar">
       <div class="metro-switch" role="group" aria-label="Вид переводов">
         <button type="button" data-view="list" aria-pressed="true">Список</button>
@@ -49,5 +47,5 @@
   {% endif %}
 </section>
 {% if transfers %}
-<script src="/static/metro.js?v=2" defer></script>
+<script src="/static/metro.js?v=3" defer></script>
 {% endif %}
