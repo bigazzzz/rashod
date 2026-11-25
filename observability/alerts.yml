@@ -23,3 +23,41 @@ groups:
           severity: warning
         annotations:
           summary: "На диске с SQLite осталось менее 15% свободного места"
+  - name: porovnu-host
+    interval: 1m
+    rules:
+      - alert: PorovnuHostCpuSpike
+        expr: |
+          100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job="porovnu-host",mode="idle"}[2m]))) > 85
+          or
+          100 * (
+            avg by (instance) (rate(node_cpu_seconds_total{job="porovnu-host",mode="idle"}[2m] offset 10m))
+            - avg by (instance) (rate(node_cpu_seconds_total{job="porovnu-host",mode="idle"}[2m]))
+          ) > 40
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'На {{ $labels.instance }} загрузка CPU выше 85% или выросла более чем на 40 п. п. за 10 минут'
+      - alert: PorovnuHostMemorySpike
+        expr: |
+          100 * (1 - node_memory_MemAvailable_bytes{job="porovnu-host"} / node_memory_MemTotal_bytes{job="porovnu-host"}) > 90
+          or
+          100 * (
+            (node_memory_MemAvailable_bytes{job="porovnu-host"} offset 10m / node_memory_MemTotal_bytes{job="porovnu-host"} offset 10m)
+            - (node_memory_MemAvailable_bytes{job="porovnu-host"} / node_memory_MemTotal_bytes{job="porovnu-host"})
+          ) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'На {{ $labels.instance }} занято более 90% памяти или её использование выросло более чем на 20 п. п. за 10 минут'
+      - alert: PorovnuHostRootDiskLow
+        expr: |
+          100 * node_filesystem_avail_bytes{job="porovnu-host",mountpoint="/"}
+          / (node_filesystem_size_bytes{job="porovnu-host",mountpoint="/"} > 0) < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'На корневом разделе {{ $labels.instance }} осталось менее 10% свободного места'
