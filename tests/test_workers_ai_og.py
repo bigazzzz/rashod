@@ -51,20 +51,27 @@ def test_cloudflare_receives_title_and_returns_image(configured):
             assert title in data["text"] and "слева" in data["text"]
             assert data["source_lang"] == "russian" and data["target_lang"] == "english"
             return httpx.Response(200, json={"success": True, "result": {"translated_text": english}})
-        assert data == {"prompt": english, "steps": 4}
+        assert data["prompt"].startswith(english + "\n")
+        assert "Do not render any text anywhere in the image." in data["prompt"]
+        assert data["steps"] == 4
         return httpx.Response(200, json={"success": True, "result": {"image": base64.b64encode(payload).decode()}})
 
     assert asyncio.run(fetch_cartoon_background(title, transport=httpx.MockTransport(respond))) == payload
     assert calls == ["@cf/meta/m2m100-1.2b", "@cf/black-forest-labs/flux-1-schnell"]
 
 
-def test_english_template_skips_translation(configured):
+@pytest.mark.parametrize("padding", ["", " " + "x" * 2048])
+def test_english_template_skips_translation(configured, padding):
     def respond(request):
         assert request.url.path.endswith("/flux-1-schnell")
-        assert json.loads(request.content)["prompt"] == "Watercolor: Picnic"
+        prompt = json.loads(request.content)["prompt"]
+        assert prompt.startswith("Watercolor: Picnic")
+        assert len(prompt) <= 2048
+        assert "Do not render any text anywhere in the image." in prompt
+        assert prompt.endswith("Leave signs and labels blank.")
         return httpx.Response(200, json={"success": True, "result": {"image": "YQ=="}})
 
-    assert asyncio.run(fetch_cartoon_background("Picnic", template="Watercolor: {event_name}",
+    assert asyncio.run(fetch_cartoon_background("Picnic", template="Watercolor: {event_name}" + padding,
                                                 transport=httpx.MockTransport(respond))) == b"a"
 
 
