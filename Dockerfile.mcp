@@ -6,6 +6,7 @@ COPY requirements-mcp.txt .
 RUN pip install --no-cache-dir -r requirements-mcp.txt
 
 COPY mcp_server/ ./mcp_server/
+COPY porovnu_logging.py .
 
 ENV MCP_HOST=0.0.0.0
 ENV MCP_PORT=8080

@@ -51,5 +51,8 @@ def cleanup_old_events() -> int:
 
 async def run_cleanup_loop() -> None:
     while True:
-        cleanup_old_events()
+        try:
+            cleanup_old_events()
+        except Exception:
+            log.exception("Scheduled cleanup failed")
         await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)

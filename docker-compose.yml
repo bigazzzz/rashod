@@ -11,6 +11,7 @@ services:
     expose:
       - "8000"
     environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DATABASE_URL: sqlite:////data/expenses.db
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://${DOMAIN:-localhost}}
       TRUST_PROXY_HEADERS: "1" # Caddy is the only thing that can reach this container
@@ -46,6 +47,8 @@ services:
     expose:
       - "8080"
     environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MCP_LOG_LEVEL: ${MCP_LOG_LEVEL:-${LOG_LEVEL:-INFO}}
       OPS_BASE_URL: http://web:8000
       OPS_TOKEN: ${OPS_TOKEN:-}
       MCP_HOST: 0.0.0.0

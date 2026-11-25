@@ -21,6 +21,7 @@ from app.db import init_db
 from app.rate_limit import limiter
 from app.routes import admin, events, expenses, ops
 from app.templating import templates
+from porovnu_logging import RequestLoggingMiddleware
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -60,6 +61,7 @@ app.include_router(ops.router)
 app.include_router(admin.router)
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.exception_handler(HTTPException)

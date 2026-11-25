@@ -1,3 +1,4 @@
+import logging
 import re
 import secrets
 from datetime import datetime
@@ -7,6 +8,8 @@ from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.models import Event, Expense
+
+log = logging.getLogger(__name__)
 
 
 def generate_unique_slug(db: Session) -> str:
@@ -21,6 +24,7 @@ def create_event(db: Session, name: str) -> Event:
     db.add(event)
     db.commit()
     db.refresh(event)
+    log.info("event_created")
     return event
 
 
@@ -54,6 +58,7 @@ def add_expense(
     db.add(expense)
     db.commit()
     db.refresh(expense)
+    log.info("expense_added")
     return expense
 
 
@@ -77,6 +82,7 @@ def delete_expense(db: Session, event: Event, expense_id: int) -> bool:
         return False
     db.delete(expense)
     db.commit()
+    log.info("expense_deleted")
     return True
 
 

@@ -14,14 +14,11 @@ from mcp.server.fastmcp import FastMCP
 
 from mcp_server.auth import RateLimitMiddleware
 from mcp_server.client import OpsClientError, ops_post
+from porovnu_logging import RequestLoggingMiddleware, configure_logging
 
 load_dotenv()
 
 log = logging.getLogger("porovnu.mcp")
-logging.basicConfig(
-    level=os.environ.get("MCP_LOG_LEVEL", "INFO"),
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
 
 _SLUG_RE = re.compile(r"^[0-9a-f]{18}$")
 
@@ -39,15 +36,13 @@ mcp = FastMCP(
 )
 
 
-def _audit(tool: str, started: float, *, ok: bool, detail: str = "") -> None:
-    latency_ms = round((time.perf_counter() - started) * 1000, 1)
-    log.info(
-        "tool=%s ok=%s latency_ms=%s %s",
-        tool,
-        ok,
-        latency_ms,
-        detail,
-    )
+def _audit(tool: str, started: float, *, error: str | None = None, status: int | None = None) -> None:
+    fields = {"tool": tool, "ok": error is None, "duration_ms": round((time.perf_counter() - started) * 1000, 2)}
+    level = logging.INFO
+    if error:
+        fields.update(error=error, upstream_status=status)
+        level = logging.ERROR if error == "upstream" and (status is None or status >= 500) else logging.WARNING
+    log.log(level, "mcp_tool", extra={"fields": fields})
 
 
 def _tool_result(payload: dict[str, Any]) -> str:
@@ -68,10 +63,10 @@ def create_event(name: str) -> str:
     started = time.perf_counter()
     try:
         data = ops_post("/internal/ops/events", {"name": name})
-        _audit("create_event", started, ok=True)
+        _audit("create_event", started)
         return _tool_result(data)
     except OpsClientError as exc:
-        _audit("create_event", started, ok=False, detail=str(exc))
+        _audit("create_event", started, error="upstream", status=exc.status_code)
         return _tool_error(str(exc))
 
 
@@ -92,7 +87,7 @@ def add_expense(
     started = time.perf_counter()
     slug = (slug or "").strip()
     if not _SLUG_RE.match(slug):
-        _audit("add_expense", started, ok=False, detail="invalid_slug")
+        _audit("add_expense", started, error="invalid_slug")
         return _tool_error("Неверный slug: нужны 18 шестнадцатеричных символов")
     try:
         data = ops_post(
@@ -103,10 +98,10 @@ def add_expense(
                 "payer_name": payer_name,
             },
         )
-        _audit("add_expense", started, ok=True)
+        _audit("add_expense", started)
         return _tool_result(data)
     except OpsClientError as exc:
-        _audit("add_expense", started, ok=False, detail=str(exc))
+        _audit("add_expense", started, error="upstream", status=exc.status_code)
         return _tool_error(str(exc))
 
 
@@ -114,17 +109,19 @@ def create_http_app():
     """Starlette app with a per-IP rate limit around streamable HTTP. No bearer auth."""
     app = mcp.streamable_http_app()
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestLoggingMiddleware, service_route="/mcp")
     return app
 
 
 def main() -> None:
     import uvicorn
 
+    configure_logging("mcp")
     app = create_http_app()
     host = os.environ.get("MCP_HOST", "0.0.0.0")
     port = int(os.environ.get("MCP_PORT", "8080"))
     log.info("Starting porovnu MCP on %s:%s path=/mcp", host, port)
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_config=None, access_log=False)
 
 
 if __name__ == "__main__":

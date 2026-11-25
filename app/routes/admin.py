@@ -295,7 +295,7 @@ def admin_delete_event(
     crud.delete_event(db, event)
     delete_background_for(slug)
     events_deleted_total.inc()
-    log.info("admin deleted event slug=%s", slug)
+    log.info("admin deleted event")
     return _flash_redirect("/admin/events", notice=f"Событие {slug} удалено")
 
 
@@ -349,6 +349,7 @@ def admin_save_cover_prompt(request: Request, template: str = Form(""), csrf_tok
     except OSError:
         log.exception("Failed to save cover prompt")
         return _cover_prompt_page(request, template, error="Не удалось сохранить запрос.", status=503)
+    log.info("admin saved cover prompt")
     return _flash_redirect("/admin/cover-prompt", notice="Запрос сохранён.")
 
 

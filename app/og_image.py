@@ -119,7 +119,7 @@ def delete_background_for(slug: str) -> None:
     try:
         path.unlink(missing_ok=True)
     except OSError as exc:
-        log.warning("Failed to delete OG background for %s: %s", slug, exc)
+        log.warning("Failed to delete OG background (%s)", type(exc).__name__)
 
 
 def cleanup_stale_og_backgrounds(cutoff: datetime) -> int:
@@ -136,7 +136,7 @@ def cleanup_stale_og_backgrounds(cutoff: datetime) -> int:
                 path.unlink(missing_ok=True)
                 removed += 1
         except OSError as exc:
-            log.warning("Failed to purge stale OG file %s: %s", path, exc)
+            log.warning("Failed to purge stale OG file (%s)", type(exc).__name__)
     return removed
 
 
@@ -216,7 +216,7 @@ def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
         image = ImageOps.fit(image, (WIDTH, HEIGHT), method=Image.Resampling.LANCZOS)
     except OSError as exc:
-        log.warning("Cannot decode generated background for %s: %s", slug, exc)
+        log.warning("Cannot decode generated background (%s)", type(exc).__name__)
         return None
 
     OG_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -226,7 +226,7 @@ def save_generated_background(slug: str, image_bytes: bytes) -> Path | None:
         image.save(tmp_path, format="JPEG", quality=88, optimize=True)
         tmp_path.replace(final_path)
     except OSError as exc:
-        log.warning("Cannot save OG background for %s: %s", slug, exc)
+        log.warning("Cannot save OG background (%s)", type(exc).__name__)
         try:
             tmp_path.unlink(missing_ok=True)
         except OSError:
@@ -265,7 +265,8 @@ async def generate_and_store_background(slug: str, event_name: str) -> None:
     template = await asyncio.to_thread(read_cover_prompt)
     raw = await fetch_cartoon_background(event_name, template=template)
     if not raw:
+        log.debug("No generated cover background")
         return
     path = await asyncio.to_thread(save_generated_background, slug, raw)
     if path:
-        log.info("Stored Cloudflare Workers AI OG background for %s at %s", slug, path)
+        log.info("Stored Cloudflare Workers AI OG background")

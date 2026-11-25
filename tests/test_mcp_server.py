@@ -50,6 +50,7 @@ def test_mcp_http_is_public(monkeypatch):
         response = client.post("/mcp", json={})
     assert response.status_code != 401
     assert response.status_code != 503
+    assert response.headers["x-request-id"]
 
 
 def test_add_expense_rejects_bad_slug():
