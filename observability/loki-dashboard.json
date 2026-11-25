@@ -54,14 +54,19 @@
       "gridPos": {"h": 22, "w": 24, "x": 0, "y": 0},
       "options": {
         "showTime": true,
-        "showLabels": true,
-        "wrapLogMessage": true,
+        "showLevel": true,
+        "showLabels": false,
+        "displayedFields": ["service", "message"],
+        "unwrappedColumns": true,
+        "wrapLogMessage": false,
+        "enableLogDetails": true,
+        "detailsMode": "inline",
         "sortOrder": "Descending"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=\"porovnu\",service=~\"${service:regex}\"} ${pipeline:raw}",
+          "expr": "{job=\"porovnu\",service=~\"${service:regex}\"} ${pipeline:raw} | json app_message=\"message\", caddy_message=\"msg\" | label_format message=`{{ or .app_message .caddy_message (__line__) }}` | drop app_message, caddy_message, __error__, __error_details__",
           "editorMode": "code",
           "queryType": "range",
           "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
