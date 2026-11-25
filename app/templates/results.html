@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block styles %}<link rel="stylesheet" href="/static/metro.css?v=5">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/static/metro.css?v=6">{% endblock %}
 {% block title %}Результаты — {{ event.name }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block og_title %}Результаты · {{ event.name }}{% endblock %}
@@ -18,7 +18,7 @@
   {% include "_share.html" %}
 
   <h2>Кто кому должен</h2>
-  {% if transfers %}
+  {% if totals %}
     {% include "_transfer_metro.html" %}
   {% else %}
     <p>Все квиты, переводов не требуется.</p>

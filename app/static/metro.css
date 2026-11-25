@@ -30,6 +30,14 @@
   fill: color-mix(in srgb, var(--mark-color, var(--circle-color)) 38%, var(--navy-deep));
   stroke-width: 4;
 }
+.contribution-share-circle {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3.5;
+  stroke-dasharray: 7 5;
+}
+.contribution-share-circle.is-hovered,
+.contribution-share-circle.is-focused { stroke-width: 5; }
 .contributions [data-contribution-row]:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
@@ -60,6 +68,7 @@
   border-radius: 50%;
 }
 .contribution-swatch[data-zero] { border-color: var(--card-text-dim); border-style: dashed; }
+.contribution-share-swatch { border: 2px dashed #fff; }
 
 .metro {
   --divider: rgba(248, 236, 217, .15);
@@ -78,6 +87,18 @@
   gap: 12px;
 }
 .metro-head { padding: 22px 20px 17px; align-items: start; }
+.metro-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 14px;
+  color: var(--card-text-dim);
+}
+.metro-share strong { color: var(--card-text); font-size: 18px; font-variant-numeric: tabular-nums; }
+.metro-no-transfers { margin: 0; padding: 14px 20px; }
 .metro-total, .metro-filter { display: grid; gap: 6px; min-width: 0; }
 .metro-total span, .metro-filter {
   font-size: 13px;
@@ -180,6 +201,7 @@
 .metro-list strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .metro .metro-list li:last-child { border: 0; }
 @media (max-width: 480px) {
+  .metro-share, .metro-no-transfers { padding-inline: 12px; }
   .metro-head { padding: 16px 12px 15px; }
   .metro-bar { padding: 0 12px 12px; }
   .metro-sides { padding-inline: 10px; }

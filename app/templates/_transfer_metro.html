@@ -1,4 +1,9 @@
-<section id="transfer-metro" class="metro" aria-label="Переводы">
+<section{% if transfers %} id="transfer-metro"{% endif %} class="metro" aria-label="Переводы">
+  <div class="metro-share">
+    <span>Доля каждого</span>
+    <strong>{{ share_amount }} ₽</strong>
+  </div>
+  {% if transfers %}
   <div class="metro-interactive" hidden>
     <header class="metro-head">
       <div class="metro-total" aria-live="polite">
@@ -39,5 +44,10 @@
     <li data-from="{{ t.from_person }}" data-to="{{ t.to_person }}" data-kopecks="{{ (t.amount * 100)|int }}"><span>{{ t.from_person }} → {{ t.to_person }}</span> <strong>{{ "%.2f"|format(t.amount) }} ₽</strong></li>
     {% endfor %}
   </ul>
+  {% else %}
+  <p class="metro-no-transfers">Все квиты, переводов не требуется.</p>
+  {% endif %}
 </section>
+{% if transfers %}
 <script src="/static/metro.js?v=2" defer></script>
+{% endif %}

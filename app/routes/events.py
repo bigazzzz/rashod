@@ -368,6 +368,9 @@ def results_page(request: Request, slug: str, db: Session = Depends(get_db)):
         for person, amount in totals.items():
             people_by_amount.setdefault(amount, []).append(person)
         largest = max(people_by_amount)
+        share = context["total"] / len(totals)
+        context["share_amount"] = f"{share:.2f}"
+        context["share_radius"] = 100 * sqrt(share / largest) if largest else 0
         context["contribution_groups"] = [
             (amount, people_by_amount[amount], 100 * sqrt(amount / largest) if largest else 0)
             for amount in sorted(people_by_amount, reverse=True)

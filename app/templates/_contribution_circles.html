@@ -25,6 +25,9 @@
             <title>{{ contribution_description(amount, people) }}</title>
           </circle>
         {% endfor %}
+        <circle class="contribution-share-circle" data-contribution-circle="share" cx="104" cy="104" r="{{ share_radius }}">
+          <title>Доля каждого — {{ share_amount }} ₽</title>
+        </circle>
       </svg>
     {% endif %}
     <div>
@@ -39,6 +42,13 @@
             <strong>{{ "%.2f"|format(amount) }} ₽</strong>
           </li>
         {% endfor %}
+        {% if share_radius %}
+          <li tabindex="0" data-contribution-row="share">
+            <span class="contribution-swatch contribution-share-swatch" aria-hidden="true"></span>
+            <span>Доля каждого</span>
+            <strong>{{ share_amount }} ₽</strong>
+          </li>
+        {% endif %}
       </ul>
       <p>Всего потрачено <strong>{{ "%.2f"|format(total) }} ₽</strong></p>
       <p>Общая часть взносов <strong>{{ "%.2f"|format(common_contribution) }} ₽ с человека</strong></p>
@@ -46,4 +56,4 @@
     </div>
   </div>
 </figure>
-<script src="/static/contributions.js?v=2" defer></script>
+<script src="/static/contributions.js?v=3" defer></script>

@@ -584,6 +584,8 @@ def test_results_metro_uses_settlement_amounts_and_canonical_names(client):
     assert 'data-view="list" aria-pressed="true"' in html
     assert 'class="metro-map" hidden' in html
     assert 'id="transfer-metro"' in html
+    assert html.index("Доля каждого") < html.index("Сумма переводов")
+    assert "<span>Доля каждого</span>\n    <strong>10.01 ₽</strong>" in html
     assert 'data-from="Олег" data-to="Аня" data-kopecks="1001"' in html
     assert '<span>Олег → Аня</span> <strong>10.01 ₽</strong>' in html
     assert '<details class="metro-picker">' in html
@@ -597,19 +599,20 @@ def test_no_transfer_map_when_everyone_is_even(client):
     html = client.get(f"/r/{slug}").text
     assert 'id="transfer-metro"' not in html
     assert "Все квиты" in html
+    assert "Доля каждого" not in html
     assert 'id="contribution-circles"' not in html
 
 
 @pytest.mark.parametrize(
-    ("amounts", "common", "to_transfer", "circle_count"),
+    ("amounts", "common", "to_transfer", "share", "circle_count"),
     [
-        (("100", "100", "100"), "100.00", "0.00", 1),
-        (("100", "50", "25"), "25.00", "41.67", 3),
-        (("100", "0", "0"), "0.00", "66.67", 1),
-        (("0", "0", "0"), "0.00", "0.00", 0),
+        (("100", "100", "100"), "100.00", "0.00", "100.00", 1),
+        (("100", "50", "25"), "25.00", "41.67", "58.33", 3),
+        (("100", "0", "0"), "0.00", "66.67", "33.33", 1),
+        (("0", "0", "0"), "0.00", "0.00", "0.00", 0),
     ],
 )
-def test_results_contribution_circles(client, amounts, common, to_transfer, circle_count):
+def test_results_contribution_circles(client, amounts, common, to_transfer, share, circle_count):
     slug = create_event(client)
     for name, amount in zip(("Аня", "Олег", "Лена"), amounts):
         response = client.post(
@@ -624,9 +627,15 @@ def test_results_contribution_circles(client, amounts, common, to_transfer, circ
     assert f'Всего потрачено <strong>{sum(map(float, amounts)):.2f} ₽</strong>' in html
     assert f'Общая часть взносов <strong>{common} ₽ с человека</strong>' in html
     assert f'Осталось перевести <strong>{to_transfer} ₽</strong>' in html
+    assert f"<span>Доля каждого</span>\n    <strong>{share} ₽</strong>" in html
     assert html.count('class="contribution-circle"') == circle_count
-    assert html.count("data-contribution-circle=") == circle_count
-    assert html.count('<li tabindex="0" data-contribution-row=') == circle_count
+    marker_count = 1 if circle_count else 0
+    assert html.count("data-contribution-circle=") == circle_count + marker_count
+    assert html.count('<li tabindex="0" data-contribution-row=') == circle_count + marker_count
+    if marker_count:
+        assert 'class="contribution-share-circle" data-contribution-circle="share"' in html
+        assert f"<title>Доля каждого — {share} ₽</title>" in html
+        assert 'data-contribution-row="share"' in html
     for index in range(circle_count):
         assert f'data-contribution-circle="{index}"' in html
         assert f'data-contribution-row="{index}"' in html

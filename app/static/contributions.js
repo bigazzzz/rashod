@@ -2,9 +2,12 @@
   const figure = document.getElementById("contribution-circles");
   if (!figure) return;
 
-  const circles = figure.querySelectorAll("[data-contribution-circle]");
+  const circles = new Map(
+    Array.from(figure.querySelectorAll("[data-contribution-circle]"),
+      circle => [circle.dataset.contributionCircle, circle])
+  );
   for (const row of figure.querySelectorAll("[data-contribution-row]")) {
-    const circle = circles[Number(row.dataset.contributionRow)];
+    const circle = circles.get(row.dataset.contributionRow);
     function setHovered(hovered) {
       row.classList.toggle("is-hovered", hovered);
       circle.classList.toggle("is-hovered", hovered);
