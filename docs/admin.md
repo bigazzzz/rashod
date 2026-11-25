@@ -7,7 +7,7 @@
 В `secrets.enc.yaml` (через sops) задайте оба значения — иначе `/admin` отвечает **404**:
 
 ```bash
-export SOPS_AGE_KEY_FILE=$PWD/keys/age-dev.key
+export SOPS_AGE_KEY_FILE=/path/to/owner.age.key
 sops secrets.enc.yaml
 # ADMIN_PASSWORD: "…"
 # ADMIN_SESSION_SECRET: "…"   # например: openssl rand -hex 32
