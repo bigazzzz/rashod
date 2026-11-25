@@ -11,6 +11,13 @@ class Transfer:
     amount: Decimal
 
 
+def compute_settlement(
+    expenses: list[tuple[str, Decimal]],
+) -> tuple[Decimal, dict[str, Decimal], list[Transfer]]:
+    totals = compute_totals(expenses)
+    return sum(totals.values(), Decimal("0")), totals, settle_debts(compute_balances(totals))
+
+
 def compute_totals(expenses: list[tuple[str, Decimal]]) -> dict[str, Decimal]:
     """Sum amounts paid per person, matching names case-insensitively.
 

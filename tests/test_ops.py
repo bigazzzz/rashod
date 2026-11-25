@@ -199,6 +199,37 @@ def test_ops_create_event_and_expense(client, monkeypatch):
     assert "отрицательн" in negative.json()["detail"]
 
 
+def test_settlement_returns_only_event_summary_and_transfers(client, monkeypatch):
+    from app.routes import ops
+
+    monkeypatch.setattr(ops, "OPS_TOKEN", "test")
+    headers = {"X-Ops-Token": "test"}
+    event = client.post("/internal/ops/events", headers=headers, json={"name": "Шашлыки"}).json()
+    url = f"/internal/ops/events/{event['slug']}"
+    assert client.get(f"{url}/settlement").status_code == 401
+    empty = client.get(f"{url}/settlement", headers=headers).json()
+    assert empty == {
+        "total": "0.00", "participant_count": 0, "transfers": [],
+        "urls": {"results": event["urls"]["results"]},
+    }
+    for name, amount in [("Антон", "1000"), ("Паша", "300"), ("Андрей", "600"), ("антон", "100")]:
+        response = client.post(
+            f"{url}/expenses", headers=headers,
+            json={"payer_name": name, "amount": amount, "description": "продукты"},
+        )
+        assert response.status_code == 200
+    assert client.get(f"{url}/settlement", headers=headers).json() == {
+        "total": "2000.00",
+        "participant_count": 3,
+        "transfers": [
+            {"from": "Паша", "to": "Антон", "amount": "366.67"},
+            {"from": "Андрей", "to": "Антон", "amount": "66.67"},
+        ],
+        "urls": {"results": event["urls"]["results"]},
+    }
+    assert client.get("/internal/ops/events/000000000000000000/settlement", headers=headers).status_code == 404
+
+
 def test_expense_writes_share_auto_names_and_amount_validation(client, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     from app.routes import ops

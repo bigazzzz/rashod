@@ -108,3 +108,26 @@ def test_add_expense_tool_posts_fields():
     )
     assert result["payer_name"] == "User001"
     assert "скрыто" not in json.dumps(result, ensure_ascii=False)
+
+
+def test_get_settlement_via_mcp():
+    import asyncio
+    from mcp.shared.memory import create_connected_server_and_client_session
+    from mcp_server.server import mcp
+
+    slug = "abc123abc123abc123"
+    payload = {"total": "0.00", "participant_count": 0, "transfers": [], "urls": {"results": f"/r/{slug}"}}
+
+    async def check():
+        async with create_connected_server_and_client_session(mcp) as session:
+            tools = (await session.list_tools()).tools
+            assert next(t for t in tools if t.name == "get_settlement").annotations.readOnlyHint
+            with patch("mcp_server.server.ops_get", return_value=payload) as get:
+                invalid = await session.call_tool("get_settlement", {"slug": "../other"})
+                assert "slug" in json.loads(invalid.content[0].text)["error"]
+                get.assert_not_called()
+                result = await session.call_tool("get_settlement", {"slug": slug})
+                assert json.loads(result.content[0].text) == payload
+                get.assert_called_once_with(f"/internal/ops/events/{slug}/settlement")
+
+    asyncio.run(check())

@@ -26,6 +26,7 @@ from app.og_image import OG_IMAGE_DIR, background_path_for, generate_and_store_b
 from app.routes.events import PUBLIC_BASE_URL, _get_event_or_404
 from app.routes.expenses import build_expense
 from app.schemas import EventCreate
+from app.settlement import compute_settlement
 
 router = APIRouter(prefix="/internal/ops", tags=["ops"], include_in_schema=False)
 
@@ -218,6 +219,22 @@ def ops_create_event(
             "event": f"{base}/e/{event.slug}",
             "results": f"{base}/r/{event.slug}",
         },
+    }
+
+
+@router.get("/events/{slug}/settlement", dependencies=[Depends(require_ops_token)])
+def ops_get_settlement(slug: str, request: Request, db: Session = Depends(get_db)):
+    event = _get_event_or_404(db, slug)
+    expenses = crud.get_expenses(db, event)
+    total, totals, transfers = compute_settlement([(e.payer_name, e.amount) for e in expenses])
+    return {
+        "total": f"{total:.2f}",
+        "participant_count": len(totals),
+        "transfers": [
+            {"from": t.from_person, "to": t.to_person, "amount": f"{t.amount:.2f}"}
+            for t in transfers
+        ],
+        "urls": {"results": f"{_public_base(request)}/r/{event.slug}"},
     }
 
 

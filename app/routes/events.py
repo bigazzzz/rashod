@@ -24,7 +24,7 @@ from app.og_image import (
 )
 from app.rate_limit import limiter
 from app.schemas import EventCreate
-from app.settlement import compute_balances, compute_totals, settle_debts
+from app.settlement import compute_settlement
 from app.templating import templates
 from app.versions import current_version, load_releases
 
@@ -269,10 +269,7 @@ def event_og_image_legacy(slug: str, db: Session = Depends(get_db)):
 
 def _results_context(request: Request, db: Session, event) -> dict:
     expenses = crud.get_expenses(db, event)
-    total = sum((e.amount for e in expenses), Decimal("0"))
-    totals = compute_totals([(e.payer_name, e.amount) for e in expenses])
-    balances = compute_balances(totals)
-    transfers = settle_debts(balances)
+    total, totals, transfers = compute_settlement([(e.payer_name, e.amount) for e in expenses])
     base_url = PUBLIC_BASE_URL.rstrip("/") if PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
     og_image_url, og_image_path = _og_image_refs(base_url, event)
     return {

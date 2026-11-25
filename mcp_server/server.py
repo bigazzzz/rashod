@@ -1,4 +1,4 @@
-"""Public MCP for Поровну: create an event and add an expense."""
+"""Public MCP tools for Поровну events, expenses and settlements."""
 
 from __future__ import annotations
 
@@ -11,11 +11,12 @@ from typing import Any
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from starlette.responses import Response
 
 from mcp_server.auth import RateLimitMiddleware
-from mcp_server.client import OpsClientError, ops_post
+from mcp_server.client import OpsClientError, ops_get, ops_post
 from porovnu_logging import RequestLoggingMiddleware, configure_logging
 
 load_dotenv()
@@ -29,8 +30,8 @@ tool_duration = Histogram("porovnu_mcp_tool_duration_seconds", "MCP tool duratio
 mcp = FastMCP(
     name="porovnu",
     instructions=(
-        "Публичные действия на Поровну: создать событие и добавить в него трату. "
-        "Чужие суммы и имена не показывать и не запрашивать. "
+        "Можно создать событие, добавить трату и получить расчёт по ссылке на событие. "
+        "В расчёте покажи общую сумму, число участников и кто кому сколько переводит. "
         "После создания события отдай человеку ссылки на страницу события и на расчёт."
     ),
     host=os.environ.get("MCP_HOST", "0.0.0.0"),
@@ -110,6 +111,29 @@ def add_expense(
         return _tool_result(data)
     except OpsClientError as exc:
         _audit("add_expense", started, error="upstream", status=exc.status_code)
+        return _tool_error(str(exc))
+
+
+@mcp.tool(
+    description=(
+        "Получить текущий расчёт по slug события (18 hex-символов из ссылки /e/ или /r/). "
+        "Возвращает общую сумму, число участников, итоговые переводы и ссылку на расчёт. "
+        "Пустой список переводов означает, что долгов нет."
+    ),
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
+def get_settlement(slug: str) -> str:
+    started = time.perf_counter()
+    slug = slug.strip()
+    if not _SLUG_RE.fullmatch(slug):
+        _audit("get_settlement", started, error="invalid_slug")
+        return _tool_error("Неверный slug: нужны 18 шестнадцатеричных символов")
+    try:
+        data = ops_get(f"/internal/ops/events/{slug}/settlement")
+        _audit("get_settlement", started)
+        return _tool_result(data)
+    except OpsClientError as exc:
+        _audit("get_settlement", started, error="upstream", status=exc.status_code)
         return _tool_error(str(exc))
 
 
