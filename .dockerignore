@@ -11,3 +11,4 @@ tests/
 keys/
 *.key.b64
 cloudflare.enc.yaml
+grafana-cloud.enc.yaml

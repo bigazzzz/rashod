@@ -1,6 +1,6 @@
 # Секреты через Mozilla SOPS (age)
 
-Настройки Workers AI хранятся в [`cloudflare.enc.yaml`](../cloudflare.enc.yaml), остальные секреты — в [`secrets.enc.yaml`](../secrets.enc.yaml). Оба файла зашифрованы для одних и тех же получателей age.
+Настройки Workers AI хранятся в [`cloudflare.enc.yaml`](../cloudflare.enc.yaml), настройки Grafana Cloud — в [`grafana-cloud.enc.yaml`](../grafana-cloud.enc.yaml), остальные секреты — в [`secrets.enc.yaml`](../secrets.enc.yaml). Файлы зашифрованы для одних и тех же получателей age.
 
 ## Ключи (разделены специально)
 
@@ -34,6 +34,7 @@
 export SOPS_AGE_KEY_FILE=/path/to/owner.age.key
 sops secrets.enc.yaml
 sops cloudflare.enc.yaml
+sops grafana-cloud.enc.yaml
 ```
 
 Закоммитьте изменённые зашифрованные файлы.
@@ -43,7 +44,7 @@ sops cloudflare.enc.yaml
 Серверу нужны публичные настройки в `.env` и отдельный приватный ключ в
 `keys/age-deploy.key` с правами 600. Другой путь можно указать в
 `SOPS_AGE_KEY_FILE`. Подготовьте ключ через защищённый канал до первого
-деплоя. При каждом запуске `deploy.sh` расшифровывает оба файла перед запуском Compose. Настройки Workers AI передаются через временный dotenv-файл с правами 600, который удаляется при выходе.
+деплоя. При каждом запуске `deploy.sh` расшифровывает секреты перед запуском Compose. Настройки Workers AI и Grafana Cloud передаются через временные dotenv-файлы с правами 600, которые удаляются при выходе.
 
 ## Ротация после публикации ключа
 
