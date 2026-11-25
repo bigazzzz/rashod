@@ -15,6 +15,16 @@ def test_create_event_redirects_to_event_page(client):
     assert "Поездка на дачу" in response.text
 
 
+def test_secondary_pages_link_to_home(client):
+    slug = create_event(client)
+    home_link = 'class="home-link" href="/"'
+    for path in (f"/e/{slug}", f"/r/{slug}", f"/l/{slug}", "/about", "/e/missing"):
+        html = client.get(path).text
+        assert html.count(home_link) == 1
+        assert html.index(home_link) < html.index('class="hero')
+    assert home_link not in client.get("/").text
+
+
 def test_event_slug_is_hex_without_punctuation(client):
     slug = create_event(client, name="Hex slug")
     assert len(slug) == 18

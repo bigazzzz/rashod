@@ -53,6 +53,14 @@ body {
   color: var(--card-text);
 }
 
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 44px;
+  margin-bottom: .5rem;
+}
+
 .hero {
   display: block;
   width: 100%;
@@ -494,15 +502,6 @@ a.btn-secondary {
 
 a.btn-secondary:hover {
   background: rgba(240, 184, 78, 0.14);
-}
-
-.about-nav {
-  margin: 1.5rem 0 0;
-}
-
-.about-nav a {
-  color: var(--gold);
-  font-weight: 600;
 }
 
 .about-list {
