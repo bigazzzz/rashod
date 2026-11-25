@@ -29,7 +29,9 @@
       "gridPos": {"h": 7, "w": 12, "x": 0, "y": 0},
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "percent",
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
@@ -44,42 +46,80 @@
     },
     {
       "id": 2,
-      "title": "Память хоста, %",
+      "title": "Занятая память хоста, MiB",
       "type": "timeseries",
       "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
       "gridPos": {"h": 7, "w": 12, "x": 12, "y": 0},
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "suffix: MiB",
+          "min": 0
         },
         "overrides": []
       },
+      "transformations": [
+        {
+          "id": "configFromData",
+          "options": {
+            "configRefId": "B",
+            "mappings": [{"fieldName": "Capacity", "handlerKey": "max"}],
+            "applyTo": {"id": "byType", "options": "number"}
+          }
+        }
+      ],
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"porovnu-host\"} / node_memory_MemTotal_bytes{job=\"porovnu-host\"})",
+          "expr": "(node_memory_MemTotal_bytes{job=\"porovnu-host\"} - node_memory_MemAvailable_bytes{job=\"porovnu-host\"}) / 1024^2",
           "legendFormat": "{{instance}}",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
+        },
+        {
+          "refId": "B",
+          "expr": "max(node_memory_MemTotal_bytes{job=\"porovnu-host\"}) / 1024^2",
+          "instant": true,
+          "range": false,
+          "legendFormat": "Capacity",
           "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
         }
       ]
     },
     {
       "id": 3,
-      "title": "Свободное место файловых систем, %",
+      "title": "Свободное место файловых систем, GiB",
       "type": "timeseries",
       "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
       "gridPos": {"h": 7, "w": 12, "x": 0, "y": 7},
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "suffix: GiB",
+          "min": 0
         },
         "overrides": []
       },
+      "transformations": [
+        {
+          "id": "configFromData",
+          "options": {
+            "configRefId": "B",
+            "mappings": [{"fieldName": "Capacity", "handlerKey": "max"}],
+            "applyTo": {"id": "byType", "options": "number"}
+          }
+        }
+      ],
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * node_filesystem_avail_bytes{job=\"porovnu-host\",fstype!~\"tmpfs|ramfs\"} / (node_filesystem_size_bytes{job=\"porovnu-host\"} > 0)",
+          "expr": "(node_filesystem_avail_bytes{job=\"porovnu-host\",fstype!~\"tmpfs|ramfs\"} and (node_filesystem_size_bytes{job=\"porovnu-host\",fstype!~\"tmpfs|ramfs\"} > 0)) / 1024^3",
           "legendFormat": "{{mountpoint}}",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
+        },
+        {
+          "refId": "B",
+          "expr": "max(node_filesystem_size_bytes{job=\"porovnu-host\",fstype!~\"tmpfs|ramfs\"} > 0) / 1024^3",
+          "instant": true,
+          "range": false,
+          "legendFormat": "Capacity",
           "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
         }
       ]
