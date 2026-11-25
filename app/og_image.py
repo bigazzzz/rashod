@@ -159,7 +159,6 @@ def compose_og(event_name: str, background: Image.Image) -> Image.Image:
 
     brand_font = _load_font(34)
     title_font = _load_font(68)
-    subtitle_font = _load_font(28)
 
     brand = "Поровну"
     _draw_text_with_shadow(draw, (88, 96), brand, brand_font, (240, 184, 78, 255))
@@ -172,14 +171,6 @@ def compose_og(event_name: str, background: Image.Image) -> Image.Image:
         _draw_text_with_shadow(draw, (88, y), line, title_font, (255, 246, 230, 255))
         bbox = draw.textbbox((0, 0), line, font=title_font)
         y += (bbox[3] - bbox[1]) + 10
-
-    _draw_text_with_shadow(
-        draw,
-        (88, HEIGHT - 108),
-        "Посчитать расходы поровну",
-        subtitle_font,
-        (210, 190, 160, 255),
-    )
 
     composed = Image.alpha_composite(base, overlay).convert("RGB")
     return composed.filter(ImageFilter.UnsharpMask(radius=1.1, percent=105, threshold=2))
