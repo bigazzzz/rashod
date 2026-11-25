@@ -21,6 +21,15 @@ jobs:
       - run: python -m pytest -q
       - name: Validate proxy configuration
         run: docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - name: Validate Alloy configuration
+        run: |
+          docker run --rm -v "$PWD/observability/config.alloy:/etc/alloy/config.alloy:ro" \
+            -e GRAFANA_METRICS_URL=https://metrics.example.invalid/api/prom/push \
+            -e GRAFANA_METRICS_USER=1 \
+            -e GRAFANA_LOGS_URL=https://logs.example.invalid/loki/api/v1/push \
+            -e GRAFANA_LOGS_USER=1 -e GRAFANA_CLOUD_TOKEN=validation-only \
+            -e POROVNU_COMPOSE_PROJECT=rashod \
+            grafana/alloy:v1.22.0 validate /etc/alloy/config.alloy
 
   build:
     needs: test

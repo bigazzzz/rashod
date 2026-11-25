@@ -1,0 +1,82 @@
+prometheus.scrape "porovnu" {
+  targets = [
+    { "__address__" = "web:8000", "service" = "web" },
+    { "__address__" = "mcp:8080", "service" = "mcp" },
+  ]
+  job_name = "porovnu"
+  scrape_interval = "30s"
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path = "/host/sys"
+  rootfs_path = "/host/root"
+  set_collectors = ["cpu", "meminfo", "filesystem", "diskstats"]
+}
+
+discovery.relabel "host" {
+  targets = prometheus.exporter.unix.host.targets
+  rule {
+    target_label = "instance"
+    replacement = sys.env("POROVNU_COMPOSE_PROJECT")
+  }
+}
+
+prometheus.scrape "host" {
+  targets = discovery.relabel.host.output
+  job_name = "porovnu-host"
+  scrape_interval = "30s"
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+prometheus.remote_write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_METRICS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_METRICS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}
+
+discovery.docker "porovnu" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name = "label"
+    values = ["com.docker.compose.project=" + sys.env("POROVNU_COMPOSE_PROJECT")]
+  }
+}
+
+discovery.relabel "logs" {
+  targets = discovery.docker.porovnu.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex = "web|mcp|caddy"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "service"
+  }
+  rule {
+    target_label = "job"
+    replacement = "porovnu"
+  }
+}
+
+loki.source.docker "porovnu" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.logs.output
+  forward_to = [loki.write.cloud.receiver]
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_LOGS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_LOGS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}

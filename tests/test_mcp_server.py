@@ -61,6 +61,16 @@ def test_add_expense_rejects_bad_slug():
     assert "slug" in result["error"]
 
 
+def test_metrics_include_mcp_tool_outcomes():
+    from mcp_server.server import add_expense, create_http_app
+
+    add_expense("not-a-slug")
+    response = TestClient(create_http_app()).get("/metrics")
+    assert response.status_code == 200
+    assert 'porovnu_mcp_tool_calls_total{outcome="rejected",tool="add_expense"}' in response.text
+    assert 'porovnu_mcp_tool_duration_seconds_count{tool="add_expense"}' in response.text
+
+
 def test_create_event_tool_uses_ops_client():
     from mcp_server.server import create_event
 

@@ -28,6 +28,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return "unknown"
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.url.path == "/metrics":
+            return await call_next(request)
         key = self._client_key(request)
         now = time.monotonic()
         window = self._hits[key]

@@ -1,0 +1,25 @@
+groups:
+  - name: porovnu
+    interval: 1m
+    rules:
+      - alert: PorovnuUnavailable
+        expr: max(max_over_time(probe_success{job="porovnu-health"}[7m])) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Внешние проверки Поровну не проходят"
+      - alert: PorovnuServerErrors
+        expr: sum(increase(http_requests_total{job="porovnu",service="web",status=~"5.."}[10m])) >= 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Сайт вернул не менее пяти ответов 5xx за десять минут"
+      - alert: PorovnuSqliteStorageLow
+        expr: porovnu_sqlite_storage_free_ratio{job="porovnu",service="web"} < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "На диске с SQLite осталось менее 15% свободного места"

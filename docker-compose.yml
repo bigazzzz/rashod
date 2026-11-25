@@ -79,7 +79,33 @@ services:
       - web
       - mcp
 
+  alloy:
+    image: grafana/alloy:v1.22.0
+    profiles: [observability]
+    restart: unless-stopped
+    command: ["run", "--storage.path=/var/lib/alloy", "/etc/alloy/config.alloy"]
+    environment:
+      GRAFANA_METRICS_URL: ${GRAFANA_METRICS_URL:-}
+      GRAFANA_METRICS_USER: ${GRAFANA_METRICS_USER:-}
+      GRAFANA_LOGS_URL: ${GRAFANA_LOGS_URL:-}
+      GRAFANA_LOGS_USER: ${GRAFANA_LOGS_USER:-}
+      GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN:-}
+      POROVNU_COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+      - alloy_data:/var/lib/alloy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   db_data:
   caddy_data:
   caddy_config:
+  alloy_data:

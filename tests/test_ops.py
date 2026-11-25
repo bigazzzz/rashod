@@ -110,6 +110,13 @@ def test_ops_event_not_found(client, monkeypatch):
     assert response.status_code == 404
 
 
+def test_prometheus_metrics_include_sqlite_filesystem(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    sample = next(line for line in response.text.splitlines() if line.startswith("porovnu_sqlite_storage_free_ratio "))
+    assert 0 <= float(sample.split()[1]) <= 1
+
+
 def test_ops_metrics_summary_and_public_checks(client, monkeypatch):
     import app.routes.ops as ops
 

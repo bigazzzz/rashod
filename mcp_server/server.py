@@ -11,6 +11,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from starlette.responses import Response
 
 from mcp_server.auth import RateLimitMiddleware
 from mcp_server.client import OpsClientError, ops_post
@@ -21,6 +23,8 @@ load_dotenv()
 log = logging.getLogger("porovnu.mcp")
 
 _SLUG_RE = re.compile(r"^[0-9a-f]{18}$")
+tool_calls = Counter("porovnu_mcp_tool_calls_total", "MCP tool outcomes", ["tool", "outcome"])
+tool_duration = Histogram("porovnu_mcp_tool_duration_seconds", "MCP tool duration", ["tool"])
 
 mcp = FastMCP(
     name="porovnu",
@@ -37,11 +41,15 @@ mcp = FastMCP(
 
 
 def _audit(tool: str, started: float, *, error: str | None = None, status: int | None = None) -> None:
-    fields = {"tool": tool, "ok": error is None, "duration_ms": round((time.perf_counter() - started) * 1000, 2)}
+    duration = time.perf_counter() - started
+    fields = {"tool": tool, "ok": error is None, "duration_ms": round(duration * 1000, 2)}
     level = logging.INFO
     if error:
         fields.update(error=error, upstream_status=status)
         level = logging.ERROR if error == "upstream" and (status is None or status >= 500) else logging.WARNING
+    outcome = {logging.INFO: "ok", logging.WARNING: "rejected", logging.ERROR: "error"}[level]
+    tool_calls.labels(tool, outcome).inc()
+    tool_duration.labels(tool).observe(duration)
     log.log(level, "mcp_tool", extra={"fields": fields})
 
 
@@ -105,9 +113,14 @@ def add_expense(
         return _tool_error(str(exc))
 
 
+def _metrics(request):
+    return Response(generate_latest(), headers={"Content-Type": CONTENT_TYPE_LATEST})
+
+
 def create_http_app():
     """Starlette app with a per-IP rate limit around streamable HTTP. No bearer auth."""
     app = mcp.streamable_http_app()
+    app.add_route("/metrics", _metrics)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware, service_route="/mcp")
     return app

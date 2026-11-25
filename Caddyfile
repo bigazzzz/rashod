@@ -1,5 +1,5 @@
 {$DOMAIN:localhost} {
-	@internal path /internal/ops /internal/ops/*
+	@internal path /internal/ops /internal/ops/* /metrics /metrics/
 	handle @internal {
 		respond 404
 	}
