@@ -6,19 +6,15 @@
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
-    },
-    {
-      "name": "DS_LOKI",
-      "label": "Grafana Cloud Loki",
-      "type": "datasource",
-      "pluginId": "loki",
-      "pluginName": "Loki"
     }
   ],
   "uid": "porovnu-operations",
   "title": "Поровну · Observability",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
+  "links": [
+    {"type": "link", "title": "Логи Loki", "url": "/d/porovnu-logs", "includeVars": false, "keepTime": true}
+  ],
   "time": {
     "from": "now-6h",
     "to": "now"
@@ -322,21 +318,6 @@
           "expr": "up{job=~\"porovnu|porovnu-host\"}",
           "legendFormat": "{{job}} · {{instance}}",
           "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "title": "Логи сайта, MCP и Caddy",
-      "type": "logs",
-      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 49},
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "{job=\"porovnu\"}",
-          "queryType": "range",
-          "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
         }
       ]
     }

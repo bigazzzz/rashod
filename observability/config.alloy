@@ -18,6 +18,10 @@ prometheus.exporter.unix "host" {
 discovery.relabel "host" {
   targets = prometheus.exporter.unix.host.targets
   rule {
+    target_label = "job"
+    replacement = "porovnu-host"
+  }
+  rule {
     target_label = "instance"
     replacement = sys.env("POROVNU_COMPOSE_PROJECT")
   }
